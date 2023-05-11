@@ -1,6 +1,8 @@
 import json
-class Stations:
-    def __init__(self, location, capacity):
+from typing import Any
+class Station:
+    def __init__(self, id, location, capacity):
+        self.id = id
         self.location = location
         self.capacity = capacity
         self.availableSlots = [(Slot(i)=="vrij") for i in range(capacity)]
@@ -23,6 +25,18 @@ class Stations:
             return True
         else:
             return False
+    
+    def getId(self):
+        return self.id
+    def getLocation(self):
+        return self.location
+    def getCapacity(self):
+        return self.capacity
+    def getAvailableSlots(self):
+        return self.availableSlots
+    
+
+
 
 
 class Slot:
@@ -83,6 +97,8 @@ class Gebruiker:
         return self.geboorteDatum
     def getWoonplaats(self):
         return self.woonplaats
+    def getGehuurdeFiets(self):
+        return self.gehuurdeFiets
     
     def NeemFiets(self, fiets:Fiets):
         if(self.gehuurdeFiets == None):
@@ -126,3 +142,45 @@ class Logboek:
         self.data.append(data)
         with open(self.filepath, "w") as f:
             json.dump(self.data, f)
+
+class StationEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Station):
+            # Convert the Station object to a dictionary
+            return {
+                "id": obj.getId(),
+                "location": obj.getLocation(),
+                "capacity": obj.getCapacity(),
+                "isSlotTaken": obj.getAvailableSlots()
+            }
+        return super().default(obj)
+    
+class FietsEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Fiets):
+            return {
+                "id": obj.getId(),
+                "status": obj.getStatus(),
+                "huidige Lokatie": obj.getHuidigeLokatie()
+            }
+        return super().default(obj)
+
+class UserEncoder(json.JSONEncoder):
+    def default(self, obj: Any) -> Any:
+        if isinstance(obj, Gebruiker):
+            return{
+                "id": obj.getId(),
+                "geboorteDatum": obj.getGeboorteDatum(), 
+                "woonplaats": obj.getWoonplaats(),
+                "gehuurdeFiets": obj.getGehuurdeFiets()
+            }
+        return super().default(obj)
+    
+
+class GebruikerEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Gebruiker):
+            return obj.__dict__
+        elif isinstance(obj, Station):
+            return obj.__dict__
+        return super().default(obj)

@@ -21,3 +21,9 @@ Plan: Kijken of ik de dataset kan generen en de interface kan maken.
 
 Het maken van de namen is gelukt, de interface komt nog
 
+# Vierde dag 11/05/2023
+
+Redelijk veel aan het script gewerkt om de data op te slaan naar json files en ze terug in het python script te krijgen
+
+Mogenlijk kijk ik straks nog naar het verplaatsen van fiesten ofzo, nog geen idee hoe ik dat moet doen :(
+
