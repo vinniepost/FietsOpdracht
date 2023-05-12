@@ -35,10 +35,6 @@ class Station:
     def getAvailableSlots(self):
         return self.availableSlots
     
-
-
-
-
 class Slot:
     def __init__(self, slotId):
         self.slotId = slotId
@@ -62,7 +58,6 @@ class Slot:
         self.bike = None
         self.setStatus("vrij")
 
-
 class Fiets:
     def __init__(self, ID, status, huidigeLokatie) -> None:
         self.id = ID
@@ -82,15 +77,16 @@ class Fiets:
     def getHuidigeLokatie(self):
         return self.huidigeLokatie
     
-
-
 class Gebruiker:
-    def __init__(self, id, geboorteDatum, woonplaats) -> None:
+    def __init__(self, naam, id, geboorteDatum, woonplaats) -> None:
+        self.naam = naam
         self.id = id
         self.geboorteDatum = geboorteDatum
         self.woonplaats = woonplaats
         self.gehuurdeFiets = None
     
+    def getNaam(self):
+        return self.naam
     def getId(self):
         return self.id
     def getGeboorteDatum(self):
@@ -112,7 +108,6 @@ class Gebruiker:
         else:
             print("Geen fiets om terug te zetten")
 
-
 class Fietstransporteur(Gebruiker):
     def __init__(self) -> None:
         super().__init__(id=None, geboorteDatum=None, woonplaats=None)
@@ -126,7 +121,6 @@ class Fietstransporteur(Gebruiker):
             self.gehuurdeFiets.remove(fiets)
         else:
             print("Fiets niet in de transportauto")
-
 
 class Logboek:
     def __init__(self) -> None:
@@ -169,13 +163,13 @@ class UserEncoder(json.JSONEncoder):
     def default(self, obj: Any) -> Any:
         if isinstance(obj, Gebruiker):
             return{
+                "naam": obj.getNaam(),
                 "id": obj.getId(),
                 "geboorteDatum": obj.getGeboorteDatum(), 
                 "woonplaats": obj.getWoonplaats(),
                 "gehuurdeFiets": obj.getGehuurdeFiets()
             }
         return super().default(obj)
-    
 
 class GebruikerEncoder(json.JSONEncoder):
     def default(self, obj):
