@@ -34,7 +34,7 @@ class Station:
         return self.capacity
     def getAvailableSlots(self):
         return self.availableSlots
-    
+  
 class Slot:
     def __init__(self, slotId):
         self.slotId = slotId

@@ -1,7 +1,6 @@
 import os
 import sys
 import function as func
-from random_address import real_random_address as rra
 
 def Init():
     if len(sys.argv) < 2:
@@ -28,11 +27,12 @@ def MoveBike(DictOfBikes:dict,BikeID:str, MoveTo:str):
 
 def Main():
     ListOfData = Init()
+
     # users = List[0] # dict of users
     # bikes = List[1] # dict of bikes
     # stations = List[2] # dict of stations
     # print("Users: ", users)
-    print(len(ListOfData[2]))
+    #print(len(ListOfData[2]))
 
 
 

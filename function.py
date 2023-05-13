@@ -3,6 +3,9 @@ import sys
 import module
 import json
 import random
+import sqlite3
+from sqlite3 import Error
+
 from random_address import real_random_address as rra
 
 def FirstRuntime():
@@ -118,13 +121,13 @@ def GenerateBikes(max = 4200):
         print("To many bikes, max is 8999")
     else:
         for i in range(max):
-            bikeId = 1000 + i
+            bikeId = (1000 + i)
             bikeStatus = "Vrij"
-            bikeLocation = ""
+            bikeLocation = "Base"
             bikesDir[f"Fiets{bikeId}"] = {
                 "id": bikeId,
                 "status": bikeStatus,
-                "huidige Lokatie": bikeLocation
+                "Lokatie": bikeLocation
             }
     with open("data/fietsen.json", "w") as f:
         json.dump(bikesDir, f, cls=module.FietsEncoder)
@@ -137,7 +140,7 @@ def LoadPrevious():
     return List
 
 def combineInfo(maxUser, maxBikes, maxStations):
-    users = GenerateUsers(maxUser)
+    users = UsersToDB(maxUser)
     bikes = GenerateBikes(maxBikes)
     stations = GenerateStations(maxStations)
 
@@ -150,3 +153,35 @@ def combineInfo(maxUser, maxBikes, maxStations):
     with open("data/dataset.json", "w") as file:
         json.dump(data, file, cls=module.GebruikerEncoder)
     return data
+
+def Add_DB_Entree(conn, table, values):
+    cur = conn.cursor()
+    cur.execute("INSERT INTO " + table + " VALUES " + values)
+    conn.commit()
+
+def Add_DB_Bulk(conn, table, values):
+    for value in values:
+        Add_DB_Entree(conn, table, value)
+
+def JSON_to_Value(jsondir):
+    values = []
+    with open(jsondir, "r") as f:
+        data = json.load(f)
+
+
+def UsersToDB(maxUsers):
+    conn = sqlite3.connect(r"data/AplicatieDB.sqlite")
+    with conn:
+        cur = conn.cursor()
+        cur.execute("DROP TABLE IF EXISTS Gebruiker")
+        cur.execute("CREATE TABLE Gebruiker (id INTEGER PRIMARY KEY, naam TEXT, geboorteDatum TEXT)")
+        conn.commit()
+
+        users = GenerateUsers(maxUsers)
+        
+        for user in users:
+            print(users[user].getNaam(), users[user].getGeboorteDatum())
+            data = ('(' + str(users[user].getId())+ ',' + "'"+ users[user].getNaam()+ "'"+','+ "'"+ str(users[user].getGeboorteDatum())+ "'"+')')
+            Add_DB_Entree(conn, "Gebruiker", str(data))
+
+        return users
