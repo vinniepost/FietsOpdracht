@@ -27,3 +27,10 @@ Redelijk veel aan het script gewerkt om de data op te slaan naar json files en z
 
 Mogenlijk kijk ik straks nog naar het verplaatsen van fiesten ofzo, nog geen idee hoe ik dat moet doen :(
 
+# Dag 5 13/05/2023
+
+Tijdens het werken aan het project tijdens coderdojo vertelde een medecoath mij dat het een idee is om te kijken naar een sqlite database om de info in op te slagen ipv de json files. Ik heb op deze dag de implementatie gemaakt om alles dat gegenereed wordt in de database te krijgen met succes, echter is er ook een mogenlijke bug gekomen, hier heb ik een issue voor gemaakt op mijn git repo. 
+
+Momenteel is de volgende stap de data uit de db krijgen en in objecten kunnen steken om de dan aan te passen, deze aangepaste data moet dan terug in de database komen. (denk ik, ben nog steeds niet zeker over de visie van de docent hierover) (is ook mogenlijk dit zonder objecten te doen door de entree in de db aan te passen maar dan verlies de opdracht zijn oop gedeelte. dit moet ik dus nog eventjes verduidelijkt krijgen).
+
+buiten de database spullen afkrijgen staat er nog het veranderen op het plan (grotendeels klaar door functies in mijn klasse) samen met het websitegedeelte (ssg implementeren, goede template maken (html en css))

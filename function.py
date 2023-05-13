@@ -34,11 +34,12 @@ def Continiuation():
             return LoadPrevious()
 
 def remover():
-    os.remove(".temp")
-    os.remove("data/naamlijst.json")
-    os.remove("data/stationDict.json")
-    os.remove("data/dataset.json")
-    os.remove("data/fietsen.json")
+    files = [".temp", "data/naamlijst.json", "data/fietsen.json", "data/stationsDict.json"]
+    for file in files:
+        if os.path.exists(file):
+            os.remove(file)
+        else:
+            print("The file does not exist")
 
 def GenerateUsers(aantalUsers:int=100):
     try:
@@ -97,6 +98,12 @@ def GenerateTransportator():
 def GenerateStations(maximum):
     stationsDict = {}  
 
+    conn = ConnectToBD()
+    cur = conn.cursor()
+    cur.execute("DROP TABLE IF EXISTS Stations")
+    cur.execute("CREATE TABLE Stations (id INTEGER PRIMARY KEY, Lokatie TEXT, Capasiteit INTEGER)")
+    conn.commit()
+
     with open("data/stations.json", "r") as f:
         data = json.load(f)
         stations = data["features"]
@@ -108,31 +115,51 @@ def GenerateStations(maximum):
             stationSlotAmount = station["properties"]["Aantal_plaatsen"]
             objectname = "Station" + str(stationID)
             stationsDict[objectname] = module.Station(stationID, stationLocation, stationSlotAmount)
+            cur.execute("INSERT INTO Stations VALUES (?, ?, ?)", (stationID, (str(stationLocation["coordinates"][0])+ " " +str(stationLocation["coordinates"][1])), stationSlotAmount))
+            conn.commit()
             if i == maximum:
                 with open("data/stationDict.json", "w") as f:
                     json.dump(stationsDict, f, cls=module.StationEncoder)
                 return stationsDict
             i+=1 
+    conn.close()
 
 def GenerateBikes(max = 4200):
-    bikesDir = {}
-    
+    bikesDir = {}    
     if max > 10000:
         print("To many bikes, max is 8999")
     else:
+        conn = ConnectToBD()
+        cur = conn.cursor()
+        cur.execute("DROP TABLE IF EXISTS Fietsen")
+        cur.execute("CREATE TABLE Fietsen (id INTEGER PRIMARY KEY, status TEXT, Lokatie TEXT)")
+        conn.commit()
+
         for i in range(max):
             bikeId = (1000 + i)
             bikeStatus = "Vrij"
             bikeLocation = "Base"
+
+            cur.execute("INSERT INTO Fietsen VALUES (?, ?, ?)", (bikeId, bikeStatus, bikeLocation))
+            conn.commit()
             bikesDir[f"Fiets{bikeId}"] = {
                 "id": bikeId,
                 "status": bikeStatus,
                 "Lokatie": bikeLocation
             }
+        conn.close()
+
+
+    
+
+
+
+
     with open("data/fietsen.json", "w") as f:
         json.dump(bikesDir, f, cls=module.FietsEncoder)
     return bikesDir
 
+# needs update to load with database instead of dataset.json
 def LoadPrevious():
     with open("data/dataset.json", "r") as f:
         data = json.load(f)
@@ -154,9 +181,11 @@ def combineInfo(maxUser, maxBikes, maxStations):
         json.dump(data, file, cls=module.GebruikerEncoder)
     return data
 
-def Add_DB_Entree(conn, table, values):
+def Add_DB_Entree(table, values):
+    conn = ConnectToBD()
     cur = conn.cursor()
     cur.execute("INSERT INTO " + table + " VALUES " + values)
+
     conn.commit()
 
 def Add_DB_Bulk(conn, table, values):
@@ -169,8 +198,40 @@ def JSON_to_Value(jsondir):
         data = json.load(f)
 
 
+def StationsToDB(conn, maxStations):
+    conn = ConnectToBD()
+    with conn:
+        cur = conn.cursor()
+        cur.execute("DROP TABLE IF EXISTS Station")
+        cur.execute("CREATE TABLE Station (id INTEGER PRIMARY KEY, locatie TEXT, aantalPlaatsen INTEGER)")
+        conn.commit()
+
+        stations = GenerateStations(maxStations)
+
+        for station in stations:
+            data = f"({stations[station].getId()}, {stations[station].getLocatie()}, {stations[station].getAantalPlaatsen()})"
+            Add_DB_Entree(conn, "Station", data)
+    conn.close()
+
+
+def Add_DB_User(conn, users):
+    conn = ConnectToBD()
+    with conn:
+        cur = conn.cursor()
+        cur.execute("insert into Gebruiker values (?,?,?)", users)
+        conn.commit()
+    conn.close()
+
+
+def ConnectToBD():
+    try:
+        conn = sqlite3.connect(r"data/AplicatieDB.sqlite")
+        return conn
+    except Error:
+        print("Error connecting to DB")
+
 def UsersToDB(maxUsers):
-    conn = sqlite3.connect(r"data/AplicatieDB.sqlite")
+    conn = ConnectToBD()
     with conn:
         cur = conn.cursor()
         cur.execute("DROP TABLE IF EXISTS Gebruiker")
@@ -181,7 +242,9 @@ def UsersToDB(maxUsers):
         
         for user in users:
             print(users[user].getNaam(), users[user].getGeboorteDatum())
-            data = ('(' + str(users[user].getId())+ ',' + "'"+ users[user].getNaam()+ "'"+','+ "'"+ str(users[user].getGeboorteDatum())+ "'"+')')
-            Add_DB_Entree(conn, "Gebruiker", str(data))
+            data = f"({str(users[user].getId())}, \"{str(users[user].getNaam())}\", \"{str(users[user].getGeboorteDatum())}\")"
+            Add_DB_Entree("Gebruiker", str(data))
 
-        return users
+    conn.close()
+    return users
+    
