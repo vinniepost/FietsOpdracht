@@ -38,3 +38,5 @@ buiten de database spullen afkrijgen staat er nog het veranderen op het plan (gr
 # dag 6: 14/05/2023
 
 Momenteel is het laden van de data in vars gelukt, nu moet ik ze er terug in kunnen opslagen na het aanpassen van een object
+
+begonnen aan het verplaatsen van de fietsen, moet nog kijken of er een goede mannier is om dingen aan elkaar te koppelen. (moet eens kijken naar **fetchall()**)

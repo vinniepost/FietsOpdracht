@@ -5,7 +5,7 @@ class Station:
         self.id = id
         self.location = location
         self.capacity = capacity
-        self.availableSlots = [(Slot(i)=="vrij") for i in range(capacity)]
+        self.availableSlots = [(Slot(self.id,i)=="vrij") for i in range(capacity)]
         self.bikes = []
 
     def addBike(self, bike):
@@ -36,10 +36,10 @@ class Station:
         return self.availableSlots
   
 class Slot:
-    def __init__(self, slotId):
+    def __init__(self, slotId, stationId):
         self.slotId = slotId
         self.status = "vrij"
-        self.fiets = None
+        self.stationId = stationId
 
     def getId(self):
         return self.slotId
@@ -81,12 +81,12 @@ class Fiets:
         return self.huidigeLokatie
     
 class Gebruiker:
-    def __init__(self, id, naam, geboorteDatum, woonplaats,gehuurdeFiets=None) -> None:
+    def __init__(self, id, naam, geboorteDatum, woonplaats,gehuurdeFiets="None"):
         self.naam = naam
         self.id = id
         self.geboorteDatum = geboorteDatum
         self.woonplaats = woonplaats
-        self.gehuurdeFiets = None
+        self.gehuurdeFiets = "None"
     
     def getNaam(self):
         return self.naam
@@ -100,16 +100,16 @@ class Gebruiker:
         return self.gehuurdeFiets
     
     def NeemFiets(self, fiets):
-        if(self.gehuurdeFiets == None):
+        if(self.gehuurdeFiets == "None"):
             print(f"Fiets{fiets.getId()} is nu in gebruik")
-            self.gehuurdeFiets = f"fiets{fiets.getId()}"
+            self.gehuurdeFiets = f"fiets {fiets.getId()}"
             print(f"Fiets {self.gehuurdeFiets} is nu in gebruik")
         else:
             print(f"Fiets {self.gehuurdeFiets} is al in gebruik")
 
     def ZetFiets(self):
-        if (self.gehuurdeFiets != None):
-            self.gehuurdeFiets = None
+        if (self.gehuurdeFiets != "None"):
+            self.gehuurdeFiets = "None"
         else:
             print("Geen fiets om terug te zetten")
 

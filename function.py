@@ -12,6 +12,22 @@ def FirstRuntime():
     """
     Functie die de temp.json aanmaakt om het programma later te laten weten dat het al gerunt heeft.
     """
+    logo = """
+ ▄█    █▄     ▄████████  ▄█        ▄██████▄          ▄████████ ███▄▄▄▄       ███      ▄█     █▄     ▄████████    ▄████████    ▄███████▄    ▄████████ ███▄▄▄▄   
+███    ███   ███    ███ ███       ███    ███        ███    ███ ███▀▀▀██▄ ▀█████████▄ ███     ███   ███    ███   ███    ███   ███    ███   ███    ███ ███▀▀▀██▄ 
+███    ███   ███    █▀  ███       ███    ███        ███    ███ ███   ███    ▀███▀▀██ ███     ███   ███    █▀    ███    ███   ███    ███   ███    █▀  ███   ███ 
+███    ███  ▄███▄▄▄     ███       ███    ███        ███    ███ ███   ███     ███   ▀ ███     ███  ▄███▄▄▄      ▄███▄▄▄▄██▀   ███    ███  ▄███▄▄▄     ███   ███ 
+███    ███ ▀▀███▀▀▀     ███       ███    ███      ▀███████████ ███   ███     ███     ███     ███ ▀▀███▀▀▀     ▀▀███▀▀▀▀▀   ▀█████████▀  ▀▀███▀▀▀     ███   ███ 
+███    ███   ███    █▄  ███       ███    ███        ███    ███ ███   ███     ███     ███     ███   ███    █▄  ▀███████████   ███          ███    █▄  ███   ███ 
+███    ███   ███    ███ ███▌    ▄ ███    ███        ███    ███ ███   ███     ███     ███ ▄█▄ ███   ███    ███   ███    ███   ███          ███    ███ ███   ███ 
+ ▀██████▀    ██████████ █████▄▄██  ▀██████▀         ███    █▀   ▀█   █▀     ▄████▀    ▀███▀███▀    ██████████   ███    ███  ▄████▀        ██████████  ▀█   █▀  
+                        ▀                                                                                       ███    ███                                     
+"""
+
+    print("\n")
+    print(logo)     
+    print("\n")
+
     maxUser = int(input(" Hoeveel gebruikers wil je genereren? \n"))
     maxBikes = int(input(" Hoeveel fietsen wil je genereren? (max 8999) \n"))
     maxStations = int(input(" Hoeveel stations wil je genereren? (max 309) \n"))
@@ -30,7 +46,7 @@ def Continiuation():
             FirstRuntime()
             return LoadPrevious()
         case _:
-            # Default
+            # Default (not needed anymore???)
             return LoadPrevious()
 
 def remover():
@@ -98,19 +114,21 @@ def GenerateTransportator():
 
 def GenerateStations(maximum):
     stationsDict = {}  
-
     conn = ConnectToBD()
     cur = conn.cursor()
     cur.execute("DROP TABLE IF EXISTS Stations")
     cur.execute("CREATE TABLE Stations (id INTEGER PRIMARY KEY, Lokatie TEXT, Capasiteit INTEGER)")
+    cur.execute("DROP TABLE IF EXISTS Slots")
+    cur.execute("CREATE TABLE Slots (id INTEGER PRIMARY KEY, current TEXT,StationID INTEGER,FOREIGN KEY(StationID) REFERENCES Stations(id))")
     conn.commit()
-
     with open("data/stations.json", "r") as f:
         data = json.load(f)
         stations = data["features"]
-
         i = 1
+        CurrentAmountOfSlots = 0
         for station in stations:
+            conn = ConnectToBD()
+            cur = conn.cursor()
             stationID = station["properties"]["OBJECTID"]
             stationLocation = station["geometry"]
             stationSlotAmount = station["properties"]["Aantal_plaatsen"]
@@ -118,11 +136,22 @@ def GenerateStations(maximum):
             stationsDict[objectname] = module.Station(stationID, stationLocation, stationSlotAmount)
             cur.execute("INSERT INTO Stations VALUES (?, ?, ?)", (stationID, (str(stationLocation["coordinates"][0])+ " " +str(stationLocation["coordinates"][1])), stationSlotAmount))
             conn.commit()
+            conn.close()
+            for slot in range(stationSlotAmount):
+                GenerateSlots(stationID, CurrentAmountOfSlots)
+                CurrentAmountOfSlots += 1
             if i == maximum:
                 with open("data/stationDict.json", "w") as f:
                     json.dump(stationsDict, f, cls=module.StationEncoder)
                 return stationsDict
-            i+=1 
+            i+=1
+
+def GenerateSlots(stationID,CurrentAmountOfSlots):
+    slot = module.Slot(CurrentAmountOfSlots, stationID,)
+    conn = ConnectToBD()
+    cur = conn.cursor()
+    cur.execute("INSERT INTO Slots VALUES (?, ?, ?)", (CurrentAmountOfSlots, str(slot.status), stationID))
+    conn.commit()
     conn.close()
 
 def GenerateBikes(max = 4200):
@@ -153,7 +182,7 @@ def GenerateBikes(max = 4200):
     with open("data/fietsen.json", "w") as f:
         json.dump(bikesDir, f, cls=module.FietsEncoder)
     return bikesDir
-# needs update to load with database instead of dataset.json
+
 def LoadPrevious():
     with open("data/dataset.json", "r") as f:
         data = json.load(f)
@@ -195,8 +224,13 @@ def GetDataFromDB(table) -> list:
 
 def IDToObject(data, id, object):
     for item in data:
-        itemID, itemData = item[0], item[1:]
-        if itemID == id:
+        itemID, itemData = str(item[0]), item[1:]
+        for entree in item[1:]:
+            if type(entree) != str:
+                entree = str(entree)
+
+        print(itemID, itemData)
+        if str(itemID) == str(id):
             return object(item[0],*itemData)
         return None
 
@@ -248,20 +282,22 @@ def UsersToDB(maxUsers):
     conn.close()
     return users
 
-def NeemFietss(Gebruiker:object, Fiets:object):
-    # kijk of gebruiker een fiets heeft
-    # zo niet, neem fiets
-    # zo wel, print error
-    
-    if (Gebruiker.getGehuurdeFiets() == None):
+def NeemFietss(Gebruiker:object, Fiets:object, Station:object):
+    conn = ConnectToBD()
+    bikeAvelible = False
+    with conn:
+        cur = conn.cursor()
+        SlotWithBike = cur.execute("SELECT current FROM Slots WHERE StationID = ?", (Station.id,))
+        for slot in SlotWithBike:
+            if slot != "vrij":
+                bikeAvelible = True
+                break
+    if (Gebruiker.getGehuurdeFiets() == "None" and bikeAvelible == True):
         Gebruiker.NeemFiets(Fiets)
         Gebruiker.getGehuurdeFiets()
         Fiets.huidigeLokatie = Gebruiker.getNaam()
         Fiets.status = "In gebruik"
 
-        print(Gebruiker.getId())
-
-        conn = ConnectToBD()
         with conn:
             cur = conn.cursor()
             cur.execute("UPDATE Fietsen SET status = ?, Lokatie = ? WHERE id = ?", (Fiets.getStatus(), Fiets.getHuidigeLokatie(), Fiets.getId()))
@@ -269,20 +305,30 @@ def NeemFietss(Gebruiker:object, Fiets:object):
             cur.execute("UPDATE Gebruiker SET gehuurdeFiets = ? WHERE id = ?", (str(Gebruiker.getGehuurdeFiets()), Gebruiker.getId()))
             conn.commit()
         conn.close()
-
-
+    elif (bikeAvelible == False):
+        print("Er zijn geen fietsen beschikbaar")
     else:
         print("Gebruiker heeft al een fiets")
 
-def ZetFietsTerug(Gebruiker:object, Fiets:object):
-    pass
+def ZetFietsTerug(Gebruiker:object, Station:object, Fiets:object):
+    
+    if (Gebruiker.getGehuurdeFiets() != "None"):
+        Gebruiker.ZetFietsTerug(Fiets)
+        Fiets.huidigeLokatie = "Station"
+        Fiets.status = "Beschikbaar"
 
-
-
+        conn = ConnectToBD()
+        with conn:
+            cur = conn.cursor()
+            cur.execute("UPDATE Fietsen SET status = ?, Lokatie = ? WHERE id = ?", (Fiets.getStatus(), Fiets.getHuidigeLokatie(), Fiets.getId()))
+            conn.commit()
+            cur.execute("UPDATE Stadions SET gehuurdeFiets = ? WHERE id = ?", (str(Gebruiker.getGehuurdeFiets()), Gebruiker.getId()))
+            conn.commit()
+        conn.close()
 
 def MenuInterface():
 
-    print("welk soort gebruiker bent u?\n1. Gebruiker\n2. Transporteur\n4. Exit")
+    print("welk soort gebruiker bent u?\n1. Gebruiker\n2. Transporteur\nq. Exit")
     keuze = input("\n")
 
     match keuze:
@@ -292,7 +338,7 @@ def MenuInterface():
         case "2":
             print("Welkom transporteur")
             TransporteurInterface()
-        case "4":
+        case "q":
             print("Tot ziens")
             exit()
         case _:
@@ -302,7 +348,7 @@ def MenuInterface():
     keuze = input("\n1. Fiets ontlenen\n2. Fiets terugZetten)")
 
 def GebruikerInterface():
-    print("1. Fiets ontlenen\n2. Fiets terugZetten")
+    print("1. Fiets ontlenen\n2. Fiets terug zetten")
     keuze = input("\n")
 
     match keuze:
@@ -310,21 +356,30 @@ def GebruikerInterface():
             print("Fiets ontlenen: Geef GebruikerID en FietsID")
             GebruikerID = input("GebruikerID: ")
             FietsID = input("FietsID: ")
+            StationID = input("StationID: ")
             userdata = GetDataFromDB("Gebruiker")
             fietsdata = GetDataFromDB("Fietsen")
+            stationdata = GetDataFromDB("Stations")
             Gebruiker = IDToObject(userdata, GebruikerID, module.Gebruiker)
             Fiets = IDToObject(fietsdata, FietsID, module.Fiets)
-            
-            NeemFietss(Gebruiker, Fiets)
+            Station = IDToObject(stationdata, StationID, module.Station)
+            NeemFietss(Gebruiker, Fiets, Station)
+            GebruikerInterface()
         case "2":
-            print("Fiets terugZetten")
+            print("Fiets terug Zetten")
             GebruikerID = input("GebruikerID: ")
-            FietsID = input("FietsID: ")
+            StationID = input("StationID: ")
+            BikeID = input("FietsID: ")
             userdata = GetDataFromDB("Gebruiker")
-            stationdata = GetDataFromDB("Station")
+            stationdata = GetDataFromDB("Stations")
+            bikeData = GetDataFromDB("Fietsen")
             Gebruiker = IDToObject(userdata, GebruikerID, module.Gebruiker)
-            Station = IDToObject(stationdata, FietsID, module.Station)
-            ZetFietsTerug(Gebruiker, Station)
+            Station = IDToObject(stationdata, StationID, module.Station)
+            Fiets = IDToObject(bikeData, BikeID, module.Fiets)
+            ZetFietsTerug(Gebruiker, Station, Fiets)
+            GebruikerInterface()
+        case "q":
+            print("Tot ziens")
         case _:
             print("Geen geldige keuze")
             GebruikerInterface()
