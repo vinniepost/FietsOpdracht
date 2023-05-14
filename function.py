@@ -275,7 +275,7 @@ def NeemFietss(Gebruiker:object, Fiets:object):
         print("Gebruiker heeft al een fiets")
 
 def ZetFietsTerug(Gebruiker:object, Fiets:object):
-
+    pass
 
 
 
