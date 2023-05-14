@@ -24,21 +24,21 @@ def MoveBike(DictOfBikes:dict,BikeID:str, MoveTo:str):
     # mag dit via de dict of moet ik dit omzetten naar een objest?
     
 
+
+
+
+
 def Main(argc:int, argv:list):
 
     ListOfData = Init()
 
     userData = func.GetDataFromDB("Gebruiker")
 
-    Object = func.IDToObject(userData, 1000 , module.Gebruiker)
+    Gebruiker1000 = func.IDToObject(userData, 1000 , module.Gebruiker)
+    Fiets1000 = func.IDToObject(func.GetDataFromDB("Fietsen"), 1000, module.Fiets)
 
-    print(Object)
-    print(Object.naam)
+    func.NeemFietss(Gebruiker1000, Fiets1000)
 
-    # print("ListObject: ")
-    # print(ListObject)
-    # print("type: ")
-    # print(type(ListObject))
 
 
 

@@ -82,7 +82,7 @@ def GenerateUsers(aantalUsers:int=100):
         "1987", "1988", "1989", "1990", "1991", "1992", "1993", "1994", "1996", 
         "1997", "1998", "1999", "2000"]))
         index = str(i.replace(" ", "")) + str(n)
-        Users[index] = module.Gebruiker(i,n,verjaardag,rra()["address1"])
+        Users[index] = module.Gebruiker(n,i,verjaardag,rra()["address1"])
         n+=1
     with open("data/UserData.json", "w") as f:
         json.dump(Users, f, cls=module.UserEncoder)
@@ -235,15 +235,42 @@ def UsersToDB(maxUsers):
     with conn:
         cur = conn.cursor()
         cur.execute("DROP TABLE IF EXISTS Gebruiker")
-        cur.execute("CREATE TABLE Gebruiker (id INTEGER PRIMARY KEY, naam TEXT, geboorteDatum TEXT, woonplaats TEXT)")
+        cur.execute("CREATE TABLE Gebruiker (id INTEGER PRIMARY KEY, naam TEXT, geboorteDatum TEXT, woonplaats TEXT, gehuurdeFiets TEXT)")
         conn.commit()
 
         users = GenerateUsers(maxUsers)
         
         for user in users:
             print(users[user].getNaam(), users[user].getGeboorteDatum())
-            data = f"({str(users[user].getId())}, \"{str(users[user].getNaam())}\", \"{str(users[user].getGeboorteDatum())}\", \"{str(users[user].getWoonplaats())}\")"
+            data = f"({str(users[user].getId())}, \"{str(users[user].getNaam())}\", \"{str(users[user].getGeboorteDatum())}\", \"{str(users[user].getWoonplaats())}\", \"{str(users[user].getGehuurdeFiets())}\")"
             Add_DB_Entree("Gebruiker", str(data))
 
     conn.close()
     return users
+
+def NeemFietss(Gebruiker:object, Fiets:object):
+    # kijk of gebruiker een fiets heeft
+    # zo niet, neem fiets
+    # zo wel, print error
+    
+    if (Gebruiker.getGehuurdeFiets() == None):
+        Gebruiker.NeemFiets(Fiets)
+        Gebruiker.getGehuurdeFiets()
+        Fiets.huidigeLokatie = Gebruiker.getNaam()
+        Fiets.status = "In gebruik"
+
+        print(Gebruiker.getId())
+
+        conn = ConnectToBD()
+        with conn:
+            cur = conn.cursor()
+            cur.execute("UPDATE Fietsen SET status = ?, Lokatie = ? WHERE id = ?", (Fiets.getStatus(), Fiets.getHuidigeLokatie(), Fiets.getId()))
+            conn.commit()
+            cur.execute("UPDATE Gebruiker SET gehuurdeFiets = ? WHERE id = ?", (str(Gebruiker.getGehuurdeFiets()), Gebruiker.getId()))
+            conn.commit()
+        conn.close()
+
+
+    else:
+        print("Gebruiker heeft al een fiets")
+
