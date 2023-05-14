@@ -274,3 +274,57 @@ def NeemFietss(Gebruiker:object, Fiets:object):
     else:
         print("Gebruiker heeft al een fiets")
 
+def ZetFietsTerug(Gebruiker:object, Fiets:object):
+
+
+
+
+
+def MenuInterface():
+
+    print("welk soort gebruiker bent u?\n1. Gebruiker\n2. Transporteur\n4. Exit")
+    keuze = input("\n")
+
+    match keuze:
+        case "1":
+            print("Welkom gebruiker")
+            GebruikerInterface()
+        case "2":
+            print("Welkom transporteur")
+            TransporteurInterface()
+        case "4":
+            print("Tot ziens")
+            exit()
+        case _:
+            print("Geen geldige keuze")
+            MenuInterface()
+
+    keuze = input("\n1. Fiets ontlenen\n2. Fiets terugZetten)")
+
+def GebruikerInterface():
+    print("1. Fiets ontlenen\n2. Fiets terugZetten")
+    keuze = input("\n")
+
+    match keuze:
+        case "1":
+            print("Fiets ontlenen: Geef GebruikerID en FietsID")
+            GebruikerID = input("GebruikerID: ")
+            FietsID = input("FietsID: ")
+            userdata = GetDataFromDB("Gebruiker")
+            fietsdata = GetDataFromDB("Fietsen")
+            Gebruiker = IDToObject(userdata, GebruikerID, module.Gebruiker)
+            Fiets = IDToObject(fietsdata, FietsID, module.Fiets)
+            
+            NeemFietss(Gebruiker, Fiets)
+        case "2":
+            print("Fiets terugZetten")
+            GebruikerID = input("GebruikerID: ")
+            FietsID = input("FietsID: ")
+            userdata = GetDataFromDB("Gebruiker")
+            stationdata = GetDataFromDB("Station")
+            Gebruiker = IDToObject(userdata, GebruikerID, module.Gebruiker)
+            Station = IDToObject(stationdata, FietsID, module.Station)
+            ZetFietsTerug(Gebruiker, Station)
+        case _:
+            print("Geen geldige keuze")
+            GebruikerInterface()

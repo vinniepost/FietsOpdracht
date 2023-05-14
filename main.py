@@ -32,12 +32,37 @@ def Main(argc:int, argv:list):
 
     ListOfData = Init()
 
-    userData = func.GetDataFromDB("Gebruiker")
 
-    Gebruiker1000 = func.IDToObject(userData, 1000 , module.Gebruiker)
-    Fiets1000 = func.IDToObject(func.GetDataFromDB("Fietsen"), 1000, module.Fiets)
+    logo = """
+ ▄█    █▄     ▄████████  ▄█        ▄██████▄          ▄████████ ███▄▄▄▄       ███      ▄█     █▄     ▄████████    ▄████████    ▄███████▄    ▄████████ ███▄▄▄▄   
+███    ███   ███    ███ ███       ███    ███        ███    ███ ███▀▀▀██▄ ▀█████████▄ ███     ███   ███    ███   ███    ███   ███    ███   ███    ███ ███▀▀▀██▄ 
+███    ███   ███    █▀  ███       ███    ███        ███    ███ ███   ███    ▀███▀▀██ ███     ███   ███    █▀    ███    ███   ███    ███   ███    █▀  ███   ███ 
+███    ███  ▄███▄▄▄     ███       ███    ███        ███    ███ ███   ███     ███   ▀ ███     ███  ▄███▄▄▄      ▄███▄▄▄▄██▀   ███    ███  ▄███▄▄▄     ███   ███ 
+███    ███ ▀▀███▀▀▀     ███       ███    ███      ▀███████████ ███   ███     ███     ███     ███ ▀▀███▀▀▀     ▀▀███▀▀▀▀▀   ▀█████████▀  ▀▀███▀▀▀     ███   ███ 
+███    ███   ███    █▄  ███       ███    ███        ███    ███ ███   ███     ███     ███     ███   ███    █▄  ▀███████████   ███          ███    █▄  ███   ███ 
+███    ███   ███    ███ ███▌    ▄ ███    ███        ███    ███ ███   ███     ███     ███ ▄█▄ ███   ███    ███   ███    ███   ███          ███    ███ ███   ███ 
+ ▀██████▀    ██████████ █████▄▄██  ▀██████▀         ███    █▀   ▀█   █▀     ▄████▀    ▀███▀███▀    ██████████   ███    ███  ▄████▀        ██████████  ▀█   █▀  
+                        ▀                                                                                       ███    ███                                     
+"""
 
-    func.NeemFietss(Gebruiker1000, Fiets1000)
+    print("\n")
+    print(logo)     
+    print("\n")
+
+    wait = input("Press enter to continue...")
+
+    func.MenuInterface()
+    
+
+    match 
+
+
+    # userData = func.GetDataFromDB("Gebruiker")
+
+    # Gebruiker1000 = func.IDToObject(userData, 1000 , module.Gebruiker)
+    # Fiets1000 = func.IDToObject(func.GetDataFromDB("Fietsen"), 1000, module.Fiets)
+
+    # func.NeemFietss(Gebruiker1000, Fiets1000)
 
 
 
