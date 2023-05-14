@@ -52,16 +52,17 @@ def GenerateUsers(aantalUsers:int=100):
             
                 rngNamen = []
                 i = 1000
-                while len(rngNamen) < (aantalUsers-1):
-                    JongensNaam = (JongensNamen[random.randint(0,len(JongensNamen)-1)]+" " + (Achternamen[random.randint(0,len(Achternamen)-1)]))
-                    if JongensNaam not in rngNamen:
-                        rngNamen.append(JongensNaam)
-                    MeisjesNaam = (VrouwenNamen[random.randint(0,len(VrouwenNamen)-1)]+" " + (Achternamen[random.randint(0,len(Achternamen)-1)]))
-                    if MeisjesNaam not in rngNamen:
-                        rngNamen.append(MeisjesNaam)
+                while len(rngNamen) <= (aantalUsers-1):
+                    if (len(rngNamen) % 2) == 0:
+                        JongensNaam = (JongensNamen[random.randint(0,len(JongensNamen)-1)]+" " + (Achternamen[random.randint(0,len(Achternamen)-1)]))
+                        if JongensNaam not in rngNamen:
+                            rngNamen.append(JongensNaam)
+                    else:
+                        MeisjesNaam = (VrouwenNamen[random.randint(0,len(VrouwenNamen)-1)]+" " + (Achternamen[random.randint(0,len(Achternamen)-1)]))
+                        if MeisjesNaam not in rngNamen:
+                            rngNamen.append(MeisjesNaam)
                 outputData = {
                     "Namen": rngNamen
-
                 }
                 json.dump(outputData, output)
 
@@ -71,8 +72,8 @@ def GenerateUsers(aantalUsers:int=100):
     # class Gebruiker: self, id, geboorteDatum, woonplaats
     n = 1000
     Users = {}
-    namen = outputData["Namen"]
-    for i in namen:
+    namenL = outputData["Namen"]
+    for i in namenL:
         verjaardag = (random.choice(["01", "02", "03", "04", "05", "06", "07", "08", "09", 
         "10", "11", "12"]) + "/" + random.choice(["01", "02", "03", "04", "05", "06", 
         "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", 
@@ -81,7 +82,7 @@ def GenerateUsers(aantalUsers:int=100):
         "1987", "1988", "1989", "1990", "1991", "1992", "1993", "1994", "1996", 
         "1997", "1998", "1999", "2000"]))
         index = str(i.replace(" ", "")) + str(n)
-        Users[index] = module.Gebruiker(i,n,verjaardag,rra())
+        Users[index] = module.Gebruiker(i,n,verjaardag,rra()["address1"])
         n+=1
     with open("data/UserData.json", "w") as f:
         json.dump(Users, f, cls=module.UserEncoder)
@@ -149,16 +150,9 @@ def GenerateBikes(max = 4200):
             }
         conn.close()
 
-
-    
-
-
-
-
     with open("data/fietsen.json", "w") as f:
         json.dump(bikesDir, f, cls=module.FietsEncoder)
     return bikesDir
-
 # needs update to load with database instead of dataset.json
 def LoadPrevious():
     with open("data/dataset.json", "r") as f:
@@ -192,11 +186,19 @@ def Add_DB_Bulk(conn, table, values):
     for value in values:
         Add_DB_Entree(conn, table, value)
 
-def JSON_to_Value(jsondir):
-    values = []
-    with open(jsondir, "r") as f:
-        data = json.load(f)
+def GetDataFromDB(table) -> list:
+    conn = ConnectToBD()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM " + table)
+    data = cur.fetchall()
+    return data
 
+def IDToObject(data, id, object):
+    for item in data:
+        itemID, itemData = item[0], item[1:]
+        if itemID == id:
+            return object(item[0],*itemData)
+        return None
 
 def StationsToDB(conn, maxStations):
     conn = ConnectToBD()
@@ -213,15 +215,13 @@ def StationsToDB(conn, maxStations):
             Add_DB_Entree(conn, "Station", data)
     conn.close()
 
-
 def Add_DB_User(conn, users):
     conn = ConnectToBD()
     with conn:
         cur = conn.cursor()
-        cur.execute("insert into Gebruiker values (?,?,?)", users)
+        cur.execute("insert into Gebruiker values (?,?,?,?)", users)
         conn.commit()
     conn.close()
-
 
 def ConnectToBD():
     try:
@@ -235,16 +235,15 @@ def UsersToDB(maxUsers):
     with conn:
         cur = conn.cursor()
         cur.execute("DROP TABLE IF EXISTS Gebruiker")
-        cur.execute("CREATE TABLE Gebruiker (id INTEGER PRIMARY KEY, naam TEXT, geboorteDatum TEXT)")
+        cur.execute("CREATE TABLE Gebruiker (id INTEGER PRIMARY KEY, naam TEXT, geboorteDatum TEXT, woonplaats TEXT)")
         conn.commit()
 
         users = GenerateUsers(maxUsers)
         
         for user in users:
             print(users[user].getNaam(), users[user].getGeboorteDatum())
-            data = f"({str(users[user].getId())}, \"{str(users[user].getNaam())}\", \"{str(users[user].getGeboorteDatum())}\")"
+            data = f"({str(users[user].getId())}, \"{str(users[user].getNaam())}\", \"{str(users[user].getGeboorteDatum())}\", \"{str(users[user].getWoonplaats())}\")"
             Add_DB_Entree("Gebruiker", str(data))
 
     conn.close()
     return users
-    
