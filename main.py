@@ -1,7 +1,7 @@
 import os
 import sys
 import function as func
-from random_address import real_random_address as rra
+import module
 
 def Init():
     if len(sys.argv) < 2:
@@ -23,20 +23,14 @@ def MoveBike(DictOfBikes:dict,BikeID:str, MoveTo:str):
 
     # mag dit via de dict of moet ik dit omzetten naar een objest?
     
+def Main(argc:int, argv:list):
 
-
-
-def Main():
     ListOfData = Init()
-    # users = List[0] # dict of users
-    # bikes = List[1] # dict of bikes
-    # stations = List[2] # dict of stations
-    # print("Users: ", users)
-    print(len(ListOfData[2]))
+    wait = input("Press enter to continue...")
+    func.MenuInterface()
 
-
-
+    
 
 
 if __name__ == "__main__":
-    Main()
+    Main(len(sys.argv), sys.argv)
