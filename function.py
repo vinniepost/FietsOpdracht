@@ -137,6 +137,7 @@ def GenerateStations(maximum):
             cur.execute("INSERT INTO Stations VALUES (?, ?, ?)", (stationID, (str(stationLocation["coordinates"][0])+ " " +str(stationLocation["coordinates"][1])), stationSlotAmount))
             conn.commit()
             conn.close()
+            print(" Generating slots for stations, May take a second") 
             for slot in range(stationSlotAmount):
                 GenerateSlots(stationID, CurrentAmountOfSlots)
                 CurrentAmountOfSlots += 1
@@ -147,7 +148,7 @@ def GenerateStations(maximum):
             i+=1
 
 def GenerateSlots(stationID,CurrentAmountOfSlots):
-    slot = module.Slot(CurrentAmountOfSlots, stationID,)
+    slot = module.Slot(CurrentAmountOfSlots, stationID)
     conn = ConnectToBD()
     cur = conn.cursor()
     cur.execute("INSERT INTO Slots VALUES (?, ?, ?)", (CurrentAmountOfSlots, str(slot.status), stationID))
@@ -232,7 +233,6 @@ def IDToObject(data, id, object):
         print(itemID, itemData)
         if str(itemID) == str(id):
             return object(item[0],*itemData)
-        return None
 
 def StationsToDB(conn, maxStations):
     conn = ConnectToBD()
@@ -287,14 +287,14 @@ def NeemFietss(Gebruiker:object, Fiets:object, Station:object):
     bikeAvelible = False
     with conn:
         cur = conn.cursor()
-        SlotWithBike = cur.execute("SELECT current FROM Slots WHERE StationID = ?", (Station.id,))
-        for slot in SlotWithBike:
+        for slot in cur.execute("SELECT current FROM Slots WHERE StationID = ?", (Station.id,)):
+            print(slot[0])
             if slot != "vrij":
                 bikeAvelible = True
                 break
     if (Gebruiker.getGehuurdeFiets() == "None" and bikeAvelible == True):
         Gebruiker.NeemFiets(Fiets)
-        Gebruiker.getGehuurdeFiets()
+        print(Gebruiker.gehuurdeFiets)
         Fiets.huidigeLokatie = Gebruiker.getNaam()
         Fiets.status = "In gebruik"
 
@@ -311,20 +311,20 @@ def NeemFietss(Gebruiker:object, Fiets:object, Station:object):
         print("Gebruiker heeft al een fiets")
 
 def ZetFietsTerug(Gebruiker:object, Station:object, Fiets:object):
-    
-    if (Gebruiker.getGehuurdeFiets() != "None"):
+    if (Gebruiker.gehuurdeFiets != "None"):
         Gebruiker.ZetFietsTerug(Fiets)
-        Fiets.huidigeLokatie = "Station"
+        Fiets.huidigeLokatie = f"Station {Station.id}"
         Fiets.status = "Beschikbaar"
-
         conn = ConnectToBD()
         with conn:
             cur = conn.cursor()
-            cur.execute("UPDATE Fietsen SET status = ?, Lokatie = ? WHERE id = ?", (Fiets.getStatus(), Fiets.getHuidigeLokatie(), Fiets.getId()))
-            conn.commit()
-            cur.execute("UPDATE Stadions SET gehuurdeFiets = ? WHERE id = ?", (str(Gebruiker.getGehuurdeFiets()), Gebruiker.getId()))
+            cur.execute("UPDATE Fietsen SET status = ?, Lokatie = ? WHERE id = ?", (Fiets.status, Fiets.huidigeLokatie, Fiets.id))
+            cur.execute("UPDATE Gebruiker SET gehuurdeFiets = ? WHERE id = ?", (str(Gebruiker.getGehuurdeFiets()), Gebruiker.getId()))
             conn.commit()
         conn.close()
+    else:
+        print("Gebruiker heeft geen fiets")
+        print(Gebruiker.gehuurdeFiets)
 
 def MenuInterface():
 
@@ -345,10 +345,9 @@ def MenuInterface():
             print("Geen geldige keuze")
             MenuInterface()
 
-    keuze = input("\n1. Fiets ontlenen\n2. Fiets terugZetten)")
-
 def GebruikerInterface():
-    print("1. Fiets ontlenen\n2. Fiets terug zetten")
+    print("1. Fiets ontlenen\n2. Fiets terug zetten\n3. Status fiets met id\
+          \n4. Status slots in station\n5. Status Gebruiker met id\nq. Exit")
     keuze = input("\n")
 
     match keuze:
@@ -358,6 +357,7 @@ def GebruikerInterface():
             FietsID = input("FietsID: ")
             StationID = input("StationID: ")
             userdata = GetDataFromDB("Gebruiker")
+            print(userdata)
             fietsdata = GetDataFromDB("Fietsen")
             stationdata = GetDataFromDB("Stations")
             Gebruiker = IDToObject(userdata, GebruikerID, module.Gebruiker)
@@ -377,6 +377,27 @@ def GebruikerInterface():
             Station = IDToObject(stationdata, StationID, module.Station)
             Fiets = IDToObject(bikeData, BikeID, module.Fiets)
             ZetFietsTerug(Gebruiker, Station, Fiets)
+            GebruikerInterface()
+        case "3":
+            print("Status fiets met id")
+            FietsID = input("FietsID: ")
+            fietsdata = GetDataFromDB("Fietsen")
+            Fiets = IDToObject(fietsdata, FietsID, module.Fiets)
+            print(Fiets.getStatus())
+            GebruikerInterface()
+        case "4": # TODO: fix
+            print("Status slots in station")
+            StationID = input("StationID: ")
+            stationdata = GetDataFromDB("Stations")
+            Station = IDToObject(stationdata, StationID, module.Station)
+            print(Station.getSlots())
+            GebruikerInterface()
+        case "5":
+            print("Status Gebruiker met id")
+            GebruikerID = input("GebruikerID: ")
+            userdata = GetDataFromDB("Gebruiker")
+            Gebruiker = IDToObject(userdata, GebruikerID, module.Gebruiker)
+            print(Gebruiker.getStatus())
             GebruikerInterface()
         case "q":
             print("Tot ziens")

@@ -86,7 +86,7 @@ class Gebruiker:
         self.id = id
         self.geboorteDatum = geboorteDatum
         self.woonplaats = woonplaats
-        self.gehuurdeFiets = "None"
+        self.gehuurdeFiets = gehuurdeFiets
     
     def getNaam(self):
         return self.naam
@@ -107,7 +107,7 @@ class Gebruiker:
         else:
             print(f"Fiets {self.gehuurdeFiets} is al in gebruik")
 
-    def ZetFiets(self):
+    def ZetFietsTerug(self, fiets):
         if (self.gehuurdeFiets != "None"):
             self.gehuurdeFiets = "None"
         else:
