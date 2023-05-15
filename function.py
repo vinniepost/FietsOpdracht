@@ -314,7 +314,7 @@ def ZetFietsTerug(Gebruiker:object, Station:object, Fiets:object):
     if (Gebruiker.gehuurdeFiets != "None"):
         Gebruiker.ZetFietsTerug(Fiets)
         Fiets.huidigeLokatie = f"Station {Station.id}"
-        Fiets.status = "Beschikbaar"
+        Fiets.status = "Vrij"
         conn = ConnectToBD()
         with conn:
             cur = conn.cursor()
