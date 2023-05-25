@@ -5,6 +5,7 @@ import json
 import random
 import sqlite3
 from sqlite3 import Error
+from jinja2 import Environment, FileSystemLoader
 
 from random_address import real_random_address as rra
 
@@ -29,7 +30,7 @@ def FirstRuntime():
     print("\n")
 
     DBInitialisation()
-    UsersToDB(100)
+    UsersToDB(1000)
 
     with open(".temp", "w") as f:
         f.write("Momenteel nog een lege file om te kijken of de runtime check werkt")
@@ -69,10 +70,14 @@ def GenerateUsers(aantalUsers:int=100):
                         JongensNaam = (JongensNamen[random.randint(0,len(JongensNamen)-1)]+" " + (Achternamen[random.randint(0,len(Achternamen)-1)]))
                         if JongensNaam not in rngNamen:
                             rngNamen.append(JongensNaam)
+                            print(len(rngNamen))
+
                     else:
                         MeisjesNaam = (VrouwenNamen[random.randint(0,len(VrouwenNamen)-1)]+" " + (Achternamen[random.randint(0,len(Achternamen)-1)]))
                         if MeisjesNaam not in rngNamen:
+                            
                             rngNamen.append(MeisjesNaam)
+                            print(f"Generating random names {len(rngNamen)}/{aantalUsers}", end="\r")
                 outputData = {
                     "Namen": rngNamen
                 }
@@ -81,7 +86,6 @@ def GenerateUsers(aantalUsers:int=100):
     except FileNotFoundError:
         print("JSON File not found at \"/data/namen.json \"")
 
-    # class Gebruiker: self, id, geboorteDatum, woonplaats
     n = 1000
     Users = {}
     namenL = outputData["Namen"]
@@ -96,6 +100,7 @@ def GenerateUsers(aantalUsers:int=100):
         index = str(i.replace(" ", "")) + str(n)
         Users[index] = module.Gebruiker(n,i,verjaardag,rra()["address1"])
         n+=1
+        print(f"Generating random adresses {n}/{aantalUsers}", end="\r")
     with open("data/UserData.json", "w") as f:
         json.dump(Users, f, cls=module.UserEncoder)
     return Users
@@ -271,7 +276,7 @@ def FietsIDGetter(StationId):
 
 def GebruikerInterface():
     print("1. Fiets ontlenen\n2. Fiets terug zetten\n3. Status fiets met id\
-          \n4. Status slots in station\n5. Status Gebruiker met id\nq. Exit")
+          \n4. Status slots in station\n5. Status Gebruiker met id\n6. Genereer webpagina voor huidige situatie\nq. Exit")
     keuze = input("\n")
 
     match keuze:
@@ -323,6 +328,10 @@ def GebruikerInterface():
             userdata = GetDataFromDB("Gebruikers")
             Gebruiker = IDToObject(userdata, GebruikerID, module.Gebruiker)
             print(Gebruiker.getGehuurdeFiets())
+            GebruikerInterface()
+        case "6":
+            print("Genereer webpagina voor huidige situatie")
+            generateStaticSite()
             GebruikerInterface()
         case "q":
             print("Tot ziens")
@@ -397,7 +406,7 @@ def FietsStatusViaID():
         print("Error in FietsStatusViaID")
 
 def TransporteurInterface():
-    print("1. Fiets ontlenen\n2. Fiets terug zetten \nq. Exit")
+    print("1. Fiets ontlenen\n2. Fiets terug zetten \n3. Genereer webpagina van huidige situatie\nq. Exit")
     keuze = input("\n")
 
     match keuze:
@@ -427,8 +436,55 @@ def TransporteurInterface():
             Fiets = IDToObject(bikeData, BikeID, module.Fiets)
             ZetFietsTerug(Gebruiker, Station, Fiets)
             TransporteurInterface()
+        case "3":
+            print("Genereer webpagina voor huidige situatie")
+            generateStaticSite()
+            TransporteurInterface()
         case "q":
             print("Tot ziens")
         case _:
             print("Geen geldige keuze")
             TransporteurInterface()
+
+def generateStaticSite():
+    templateDir = "./templates"
+    outputDir = "./_site"
+    env = Environment(loader=FileSystemLoader(templateDir))
+
+    if not os.path.exists(outputDir):
+        os.makedirs(outputDir)
+
+    dataFietsen = FetchFromDatabase("Fietsen")
+    dataGebruikers = FetchFromDatabase("Gebruikers")
+    dataSloten = FetchFromDatabase("Sloten")
+    dataStation = FetchFromDatabase("Stations")
+
+    for templateFile in os.listdir(templateDir):
+        template = env.get_template(templateFile)
+        match templateFile:
+            case "index.html":
+                data = None
+            case "fietsen.html":
+                data = dataFietsen      
+            case "gebruikers.html":
+                data = dataGebruikers     
+            case "sloten.html":
+                data = dataSloten    
+            case "station.html":
+                data = dataStation    
+            case _:
+                data = None
+        outputText = template.render(Fietsen=dataFietsen, Gebruikers=dataGebruikers, Sloten=dataSloten, Stations=dataStation)
+        outputFile = os.path.join(outputDir, templateFile)
+        with open(outputFile, "w") as f:
+            f.write(outputText)
+    print("Static site generated in " + outputDir)
+
+def FetchFromDatabase(table:str = None):
+    conn = sqlite3.connect('data/AplicatieDB.sqlite')
+    curr = conn.cursor()
+    curr.execute(f"SELECT * FROM {table}")
+    data = curr.fetchall()
+    conn.close()
+    return data
+

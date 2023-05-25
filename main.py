@@ -3,6 +3,7 @@ import sys
 import function as func
 import module
 
+
 def Init():
     if len(sys.argv) < 2:
         if os.path.exists(".temp"):
@@ -14,14 +15,6 @@ def Init():
         pass
     else:
         print("WIP")
-
-
-
-def MoveBike(DictOfBikes:dict,BikeID:str, MoveTo:str):
-    # zoek fiets, laad in als object, verander locatie, sla op
-    DictOfBikes
-
-    # mag dit via de dict of moet ik dit omzetten naar een objest?
     
 def Main(argc:int, argv:list):
 
@@ -32,11 +25,6 @@ def Main(argc:int, argv:list):
     wait = input("Press enter to continue...")
 
     func.MenuInterface()
-
-    
-def test():
-
-    func.DBInitialisation()
 
 if __name__ == "__main__":
     Main(len(sys.argv), sys.argv)
