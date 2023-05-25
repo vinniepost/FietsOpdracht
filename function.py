@@ -28,14 +28,11 @@ def FirstRuntime():
     print(logo)     
     print("\n")
 
-    maxUser = int(input(" Hoeveel gebruikers wil je genereren? \n"))
-    maxBikes = int(input(" Hoeveel fietsen wil je genereren? (max 8999) \n"))
-    maxStations = int(input(" Hoeveel stations wil je genereren? (max 309) \n"))
+    DBInitialisation()
+    UsersToDB(100)
 
     with open(".temp", "w") as f:
         f.write("Momenteel nog een lege file om te kijken of de runtime check werkt")
-
-    return combineInfo(maxUser, maxBikes, maxStations)
 
 def Continiuation():
     i = input("Wil je verder met de vorige simulatie? (Y,n) \n")
@@ -44,10 +41,9 @@ def Continiuation():
             # verwijder vorige simulatie
             remover()
             FirstRuntime()
-            return LoadPrevious()
         case _:
-            # Default (not needed anymore???)
-            return LoadPrevious()
+            # verder met vorige simulatie
+            pass
 
 def remover():
     files = [".temp", "data/naamlijst.json", "data/fietsen.json", "data/stationsDict.json"]
@@ -112,98 +108,15 @@ def GenerateTransportator():
         json.dump(Transportator, f, cls=module.TransportatorEncoder)
     return Transportator
 
-def GenerateStations(maximum):
-    stationsDict = {}  
+def GenerateBike(id, status, lokatie, slotID, stationID):
+    # Only generate one bike using the class Fiets
+    Fiets = module.Fiets(id, status, lokatie, slotID, stationID)
     conn = ConnectToBD()
     cur = conn.cursor()
-    cur.execute("DROP TABLE IF EXISTS Stations")
-    cur.execute("CREATE TABLE Stations (id INTEGER PRIMARY KEY, Lokatie TEXT, Capasiteit INTEGER)")
-    cur.execute("DROP TABLE IF EXISTS Slots")
-    cur.execute("CREATE TABLE Slots (id INTEGER PRIMARY KEY, current TEXT,StationID INTEGER,FOREIGN KEY(StationID) REFERENCES Stations(id))")
-    conn.commit()
-    with open("data/stations.json", "r") as f:
-        data = json.load(f)
-        stations = data["features"]
-        i = 1
-        CurrentAmountOfSlots = 0
-        for station in stations:
-            conn = ConnectToBD()
-            cur = conn.cursor()
-            stationID = station["properties"]["OBJECTID"]
-            stationLocation = station["geometry"]
-            stationSlotAmount = station["properties"]["Aantal_plaatsen"]
-            objectname = "Station" + str(stationID)
-            stationsDict[objectname] = module.Station(stationID, stationLocation, stationSlotAmount)
-            cur.execute("INSERT INTO Stations VALUES (?, ?, ?)", (stationID, (str(stationLocation["coordinates"][0])+ " " +str(stationLocation["coordinates"][1])), stationSlotAmount))
-            conn.commit()
-            conn.close()
-            print(" Generating slots for stations, May take a second") 
-            for slot in range(stationSlotAmount):
-                GenerateSlots(stationID, CurrentAmountOfSlots)
-                CurrentAmountOfSlots += 1
-            if i == maximum:
-                with open("data/stationDict.json", "w") as f:
-                    json.dump(stationsDict, f, cls=module.StationEncoder)
-                return stationsDict
-            i+=1
-
-def GenerateSlots(stationID,CurrentAmountOfSlots):
-    slot = module.Slot(CurrentAmountOfSlots, stationID)
-    conn = ConnectToBD()
-    cur = conn.cursor()
-    cur.execute("INSERT INTO Slots VALUES (?, ?, ?)", (CurrentAmountOfSlots, str(slot.status), stationID))
+    cur.execute("INSERT INTO Fietsen VALUES (?, ?, ?, ?, ?)", (Fiets.id, Fiets.status, Fiets.huidigeLokatie, Fiets.slotID, Fiets.stationID))
     conn.commit()
     conn.close()
-
-def GenerateBikes(max = 4200):
-    bikesDir = {}    
-    if max > 10000:
-        print("To many bikes, max is 8999")
-    else:
-        conn = ConnectToBD()
-        cur = conn.cursor()
-        cur.execute("DROP TABLE IF EXISTS Fietsen")
-        cur.execute("CREATE TABLE Fietsen (id INTEGER PRIMARY KEY, status TEXT, Lokatie TEXT)")
-        conn.commit()
-
-        for i in range(max):
-            bikeId = (1000 + i)
-            bikeStatus = "Vrij"
-            bikeLocation = "Base"
-
-            cur.execute("INSERT INTO Fietsen VALUES (?, ?, ?)", (bikeId, bikeStatus, bikeLocation))
-            conn.commit()
-            bikesDir[f"Fiets{bikeId}"] = {
-                "id": bikeId,
-                "status": bikeStatus,
-                "Lokatie": bikeLocation
-            }
-        conn.close()
-
-    with open("data/fietsen.json", "w") as f:
-        json.dump(bikesDir, f, cls=module.FietsEncoder)
-    return bikesDir
-
-def LoadPrevious():
-    with open("data/dataset.json", "r") as f:
-        data = json.load(f)
-        List = [data["users"], data["bikes"], data["stations"]]
-    return List
-
-def combineInfo(maxUser, maxBikes, maxStations):
-    users = UsersToDB(maxUser)
-    bikes = GenerateBikes(maxBikes)
-    stations = GenerateStations(maxStations)
-
-    data = {
-        "users": users,
-        "bikes": bikes,
-        "stations": stations
-    }
-
-    with open("data/dataset.json", "w") as file:
-        json.dump(data, file, cls=module.GebruikerEncoder)
-    return data
+    return Fiets
 
 def Add_DB_Entree(table, values):
     conn = ConnectToBD()
@@ -234,26 +147,11 @@ def IDToObject(data, id, object):
         if str(itemID) == str(id):
             return object(item[0],*itemData)
 
-def StationsToDB(conn, maxStations):
-    conn = ConnectToBD()
-    with conn:
-        cur = conn.cursor()
-        cur.execute("DROP TABLE IF EXISTS Station")
-        cur.execute("CREATE TABLE Station (id INTEGER PRIMARY KEY, locatie TEXT, aantalPlaatsen INTEGER)")
-        conn.commit()
-
-        stations = GenerateStations(maxStations)
-
-        for station in stations:
-            data = f"({stations[station].getId()}, {stations[station].getLocatie()}, {stations[station].getAantalPlaatsen()})"
-            Add_DB_Entree(conn, "Station", data)
-    conn.close()
-
 def Add_DB_User(conn, users):
     conn = ConnectToBD()
     with conn:
         cur = conn.cursor()
-        cur.execute("insert into Gebruiker values (?,?,?,?)", users)
+        cur.execute("insert into Gebruikers values (?,?,?,?)", users)
         conn.commit()
     conn.close()
 
@@ -265,44 +163,40 @@ def ConnectToBD():
         print("Error connecting to DB")
 
 def UsersToDB(maxUsers):
-    conn = ConnectToBD()
-    with conn:
-        cur = conn.cursor()
-        cur.execute("DROP TABLE IF EXISTS Gebruiker")
-        cur.execute("CREATE TABLE Gebruiker (id INTEGER PRIMARY KEY, naam TEXT, geboorteDatum TEXT, woonplaats TEXT, gehuurdeFiets TEXT)")
-        conn.commit()
+    users = GenerateUsers(maxUsers)  
+    for user in users:
+        print(users[user].getNaam(), users[user].getGeboorteDatum())
+        data = f"({str(users[user].getId())}, \"{str(users[user].getNaam())}\", \"{str(users[user].getGeboorteDatum())}\", \"{str(users[user].getWoonplaats())}\", \"{str(users[user].getGehuurdeFiets())}\")"
+        Add_DB_Entree("Gebruikers", str(data))
 
-        users = GenerateUsers(maxUsers)
-        
-        for user in users:
-            print(users[user].getNaam(), users[user].getGeboorteDatum())
-            data = f"({str(users[user].getId())}, \"{str(users[user].getNaam())}\", \"{str(users[user].getGeboorteDatum())}\", \"{str(users[user].getWoonplaats())}\", \"{str(users[user].getGehuurdeFiets())}\")"
-            Add_DB_Entree("Gebruiker", str(data))
-
-    conn.close()
+    data = f"({str(-1)}, \"{'Transporteur'}\", \"{'n.v.t'}\", \"{'n.v.t'}\", \"{''}\")"
+    Add_DB_Entree("Gebruikers", str(data))
     return users
 
 def NeemFietss(Gebruiker:object, Fiets:object, Station:object):
     conn = ConnectToBD()
     bikeAvelible = False
+    
+    # TODO: zet hier een try rond
     with conn:
         cur = conn.cursor()
-        for slot in cur.execute("SELECT current FROM Slots WHERE StationID = ?", (Station.id,)):
-            print(slot[0])
-            if slot != "vrij":
+        for slot in cur.execute("SELECT current FROM Sloten WHERE StationID = ?", (Station.id,)):
+            if slot[0] == "Bezet":
                 bikeAvelible = True
                 break
-    if (Gebruiker.getGehuurdeFiets() == "None" and bikeAvelible == True):
-        Gebruiker.NeemFiets(Fiets)
-        print(Gebruiker.gehuurdeFiets)
-        Fiets.huidigeLokatie = Gebruiker.getNaam()
-        Fiets.status = "In gebruik"
 
+    if ((Gebruiker.getGehuurdeFiets() == "None" or Gebruiker.getId() == -1) and bikeAvelible == True):
+        Gebruiker.NeemFiets(Fiets)
+
+        if Gebruiker.getId() != -1:
+            Fiets.huidigeLokatie = Gebruiker.getNaam()
+            Fiets.status = "In gebruik"
+            Fiets.SlotID = "n.v.t."
         with conn:
             cur = conn.cursor()
-            cur.execute("UPDATE Fietsen SET status = ?, Lokatie = ? WHERE id = ?", (Fiets.getStatus(), Fiets.getHuidigeLokatie(), Fiets.getId()))
+            cur.execute("UPDATE Fietsen SET status = 'Bezet', Lokatie = ?, SlotID = 'n.v.t.', StationID = 'n.v.t.' WHERE id = ?", (Fiets.getHuidigeLokatie(), Fiets.getId()))
             conn.commit()
-            cur.execute("UPDATE Gebruiker SET gehuurdeFiets = ? WHERE id = ?", (str(Gebruiker.getGehuurdeFiets()), Gebruiker.getId()))
+            cur.execute("UPDATE Gebruikers SET gehuurdeFiets = ? WHERE id = ?", (str(Gebruiker.getGehuurdeFiets()), Gebruiker.getId()))
             conn.commit()
         conn.close()
     elif (bikeAvelible == False):
@@ -311,20 +205,25 @@ def NeemFietss(Gebruiker:object, Fiets:object, Station:object):
         print("Gebruiker heeft al een fiets")
 
 def ZetFietsTerug(Gebruiker:object, Station:object, Fiets:object):
-    if (Gebruiker.gehuurdeFiets != "None"):
-        Gebruiker.ZetFietsTerug(Fiets)
-        Fiets.huidigeLokatie = f"Station {Station.id}"
+    if ((Gebruiker.getGehuurdeFiets() != "None") and (len(Station.availableSlots) > 0)):
+        Gebruiker.ZetFietsTerug(Fiets, Station)
+        Fiets.huidigeLokatie = f"Station"
         Fiets.status = "Vrij"
         conn = ConnectToBD()
         with conn:
             cur = conn.cursor()
-            cur.execute("UPDATE Fietsen SET status = ?, Lokatie = ? WHERE id = ?", (Fiets.status, Fiets.huidigeLokatie, Fiets.id))
-            cur.execute("UPDATE Gebruiker SET gehuurdeFiets = ? WHERE id = ?", (str(Gebruiker.getGehuurdeFiets()), Gebruiker.getId()))
+            for i in cur.execute("SELECT id FROM Sloten WHERE current = 'Vrij' AND StationID = ?", (Station.getId(),)):               
+                Fiets.slotID = i[0]
+                break
+            if(Gebruiker.getId() == -1 and Gebruiker.getGehuurdeFiets() == ""):
+                Gebruiker.Fietsen = "None"
+            cur.execute("UPDATE Fietsen SET status = 'Vrij', Lokatie = ?, SlotID = ?, StationID = ? WHERE id = ?", (Fiets.huidigeLokatie, Fiets.slotID, Station.getId() , Fiets.getId()))
+            cur.execute("UPDATE Gebruikers SET gehuurdeFiets = ? WHERE id = ?", (str(Gebruiker.getGehuurdeFiets()), Gebruiker.getId()))
+            cur.execute("UPDATE Sloten SET current = 'Bezet', FietsID = ? WHERE id = ?", (Fiets.getId(), Fiets.slotID))
             conn.commit()
         conn.close()
     else:
         print("Gebruiker heeft geen fiets")
-        print(Gebruiker.gehuurdeFiets)
 
 def MenuInterface():
 
@@ -345,6 +244,31 @@ def MenuInterface():
             print("Geen geldige keuze")
             MenuInterface()
 
+def FietsIdFromUser(UserId):
+    conn = ConnectToBD()
+    cur = conn.cursor()
+    test = cur.execute("SELECT naam FROM Gebruikers WHERE id = ?", (UserId,))
+    with conn:
+        cur = conn.cursor()
+        gehuurdeFiets =  cur.execute("SELECT gehuurdeFiets FROM Gebruikers WHERE id = ?", (UserId,))
+        if (gehuurdeFiets[0] == "None"):
+            print("Gebruiker heeft geen fiets")
+        else:
+            pass
+
+def FietsIDGetter(StationId):
+    conn = ConnectToBD()
+    cur = conn.cursor()
+    cur.execute("SELECT current FROM Sloten WHERE StationID = ?", (StationId,))
+    with conn:
+        cur = conn.cursor()
+        for i in cur.execute("SELECT current, id FROM Sloten WHERE StationID = ?", (StationId,)):
+            if i[0] == "Bezet":
+                cur.execute("SELECT FietsID FROM Sloten WHERE StationID = ? AND id = ?", (StationId,i[1]))
+                FietsID = cur.fetchone()[0]
+                cur.execute("UPDATE Sloten SET current = ?, FietsID = 'Leeg' WHERE FietsID = ?", ("Vrij", FietsID))
+                return FietsID
+
 def GebruikerInterface():
     print("1. Fiets ontlenen\n2. Fiets terug zetten\n3. Status fiets met id\
           \n4. Status slots in station\n5. Status Gebruiker met id\nq. Exit")
@@ -354,10 +278,9 @@ def GebruikerInterface():
         case "1":
             print("Fiets ontlenen: Geef GebruikerID en FietsID")
             GebruikerID = input("GebruikerID: ")
-            FietsID = input("FietsID: ")
             StationID = input("StationID: ")
-            userdata = GetDataFromDB("Gebruiker")
-            print(userdata)
+            FietsID = FietsIDGetter((StationID))
+            userdata = GetDataFromDB("Gebruikers")
             fietsdata = GetDataFromDB("Fietsen")
             stationdata = GetDataFromDB("Stations")
             Gebruiker = IDToObject(userdata, GebruikerID, module.Gebruiker)
@@ -370,7 +293,7 @@ def GebruikerInterface():
             GebruikerID = input("GebruikerID: ")
             StationID = input("StationID: ")
             BikeID = input("FietsID: ")
-            userdata = GetDataFromDB("Gebruiker")
+            userdata = GetDataFromDB("Gebruikers")
             stationdata = GetDataFromDB("Stations")
             bikeData = GetDataFromDB("Fietsen")
             Gebruiker = IDToObject(userdata, GebruikerID, module.Gebruiker)
@@ -380,27 +303,132 @@ def GebruikerInterface():
             GebruikerInterface()
         case "3":
             print("Status fiets met id")
-            FietsID = input("FietsID: ")
-            fietsdata = GetDataFromDB("Fietsen")
-            Fiets = IDToObject(fietsdata, FietsID, module.Fiets)
-            print(Fiets.getStatus())
+            FietsStatusViaID()
             GebruikerInterface()
         case "4": # TODO: fix
-            print("Status slots in station")
+            print("\nStatus slots in station\n")
             StationID = input("StationID: ")
-            stationdata = GetDataFromDB("Stations")
-            Station = IDToObject(stationdata, StationID, module.Station)
-            print(Station.getSlots())
+            conn = ConnectToBD()
+            cur = conn.cursor()
+            with conn:
+                cur = conn.cursor()
+                for i in cur.execute("SELECT id, current FROM Sloten WHERE StationID = ?", (StationID,)):
+                    print(i)
+            conn.commit()
+            conn.close()
             GebruikerInterface()
         case "5":
             print("Status Gebruiker met id")
             GebruikerID = input("GebruikerID: ")
-            userdata = GetDataFromDB("Gebruiker")
+            userdata = GetDataFromDB("Gebruikers")
             Gebruiker = IDToObject(userdata, GebruikerID, module.Gebruiker)
-            print(Gebruiker.getStatus())
+            print(Gebruiker.getGehuurdeFiets())
             GebruikerInterface()
         case "q":
             print("Tot ziens")
         case _:
             print("Geen geldige keuze")
             GebruikerInterface()
+
+def GenerateSlot(stationId, totaalAantalSloten):
+    Slot = module.Slot(totaalAantalSloten,stationId)
+    return Slot
+
+def DBInitialisation():
+    try:
+        print("Generating data and saving it to the database")
+        stationDict = {}
+        totaalAantalFietsen = 0
+        totaalAantalSloten = 0
+        conn = ConnectToBD()
+        cur = conn.cursor()
+        cur.execute("DROP TABLE IF EXISTS Gebruikers")
+        cur.execute("DROP TABLE IF EXISTS Fietsen")
+        cur.execute("DROP TABLE IF EXISTS Sloten")
+        cur.execute("DROP TABLE IF EXISTS Stations")
+        cur.execute("CREATE TABLE Fietsen (id INTEGER PRIMARY KEY, status TEXT, Lokatie TEXT, SlotID INTEGER, StationID INTEGER, FOREIGN KEY(SlotID) REFERENCES Sloten(id), FOREIGN KEY(StationID) REFERENCES Stations(id))")
+        cur.execute("CREATE TABLE Gebruikers (id INTEGER PRIMARY KEY, naam TEXT, geboorteDatum TEXT, woonplaats TEXT, gehuurdeFiets TEXT)")
+        cur.execute("CREATE TABLE Sloten (id INTEGER PRIMARY KEY, current TEXT, FietsID TEXT,StationID INTEGER,FOREIGN KEY(StationID) REFERENCES Stations(id))")
+        cur.execute("CREATE TABLE Stations (id INTEGER PRIMARY KEY, Lokatie TEXT, Capasiteit INTEGER)")
+        with open("data/stations.json") as f:
+            data = json.load(f)
+            stations = data["features"]
+            SurfixId = 1 # niet zeker
+            slotID = 1
+
+            for station in stations:
+                print(f"Generating station {SurfixId}/{len(stations)}, may take a second", end='\r')
+                huidigAantalSlots = 0
+                stationId = station["properties"]["OBJECTID"]
+                stationLokatie = (str(station["geometry"]["coordinates"][0])+","+str(station["geometry"]["coordinates"][1]))
+                stationCapasiteit = station["properties"]["Aantal_plaatsen"]
+                objectNaam = "Station" + str(SurfixId)
+                stationDict[objectNaam] = module.Station(stationId,stationLokatie,stationCapasiteit)
+                cur.execute("INSERT INTO Stations (id, Lokatie, Capasiteit) VALUES (?,?,?)",(stationId,stationLokatie,stationCapasiteit))
+                conn.commit()
+                SurfixId += 1
+                for i in range(stationCapasiteit):
+                    Slot = GenerateSlot(totaalAantalSloten, stationId)
+                    totaalAantalSloten += 1
+                    huidigAantalSlots += 1
+                    slotBezet = "Vrij"
+                    if (huidigAantalSlots <= stationCapasiteit/2):
+                        Fiets = GenerateBike((totaalAantalFietsen+1000),"Vrij","Station", slotID,stationId)
+                        Slot.setFietsID(Fiets.id)
+                        totaalAantalFietsen += 1
+                        slotBezet = "Bezet"
+                    slotID += 1
+                    cur = conn.cursor()
+                    cur.execute("INSERT INTO Sloten (id, current, FietsID ,StationID) VALUES (?,?,?,?)",(totaalAantalSloten,slotBezet,Slot.FietsId,stationId))
+                    conn.commit()
+        conn.close()
+    except Error as e:
+        print(e)
+        print("Error in DBInitialisation")
+
+def FietsStatusViaID():
+    try:
+        FietsID = input("FietsID: ")
+        fietsdata = GetDataFromDB("Fietsen")
+        Fiets = IDToObject(fietsdata, FietsID, module.Fiets)
+        print(Fiets.getStatus())
+    except Error as e:
+        print(e)
+        print("Error in FietsStatusViaID")
+
+def TransporteurInterface():
+    print("1. Fiets ontlenen\n2. Fiets terug zetten \nq. Exit")
+    keuze = input("\n")
+
+    match keuze:
+        case "1":
+            print("Fiets ontlenen: Geef GebruikerID en FietsID")
+            GebruikerID = '-1'
+            StationID = input("StationID: ")
+            FietsID = FietsIDGetter((StationID))
+            userdata = GetDataFromDB("Gebruikers")
+            fietsdata = GetDataFromDB("Fietsen")
+            stationdata = GetDataFromDB("Stations")
+            Gebruiker = IDToObject(userdata, GebruikerID, module.Gebruiker)
+            Fiets = IDToObject(fietsdata, FietsID, module.Fiets)
+            Station = IDToObject(stationdata, StationID, module.Station)
+            NeemFietss(Gebruiker, Fiets, Station)
+            TransporteurInterface()
+        case "2":
+            print("Fiets terug Zetten")
+            GebruikerID = '-1'
+            StationID = input("StationID: ")
+            BikeID = input("FietsID: ")
+            userdata = GetDataFromDB("Gebruikers")
+            stationdata = GetDataFromDB("Stations")
+            bikeData = GetDataFromDB("Fietsen")
+            Gebruiker = IDToObject(userdata, GebruikerID, module.Gebruiker)
+            Station = IDToObject(stationdata, StationID, module.Station)
+            Fiets = IDToObject(bikeData, BikeID, module.Fiets)
+            ZetFietsTerug(Gebruiker, Station, Fiets)
+            TransporteurInterface()
+        case "q":
+            print("Tot ziens")
+        case _:
+            print("Geen geldige keuze")
+            TransporteurInterface()
