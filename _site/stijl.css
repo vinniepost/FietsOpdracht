@@ -1,0 +1,114 @@
+h1 {
+  font-size: 7.5vw;
+  text-align: center;
+}
+h2 {
+  font-size: 6vw;
+  margin-top: 2vh;
+  font-weight: bold;
+}
+h3 {
+  font-size: 4.5vw;
+  margin-top: 2vh;
+  font-weight: bold;
+}
+h2,
+h3,
+p {
+  margin-left: 2vw;
+  margin-right: 2vw;
+}
+p,
+a {
+  font-size: 4vw;
+  margin-top: 2vh;
+}
+#header {
+  margin-bottom: 2vh;
+  padding-top: 2vh;
+  background-color: wheat;
+}
+nav{
+    border-bottom: 3px solid black;
+    margin-bottom: 1vw;
+}
+nav ul {
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  margin-left: 5vw;
+  margin-right: 5vw;
+
+}
+nav li {
+  flex-basis: 20%;
+  padding: 10px;
+  box-sizing: border-box;
+
+  text-align: center;
+}
+nav a {
+  text-decoration: none;
+  color: black;
+}
+li {
+  display: inline;
+  margin-right: 2vw;
+}
+table {
+  border: 1px solid black;
+  border-collapse: collapse;
+  width: 90vw;
+  margin-left: 5vw;
+}
+
+td {
+  border: 1px solid black;
+  border-collapse: collapse;
+  width: 90vw;
+  text-align: center;
+  font-size: 3vw;
+}
+tr,
+th {
+  border: 1px solid black;
+  border-collapse: collapse;
+  width: 90vw;
+}
+footer {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background-color: #333;
+  color: white;
+  text-align: center;
+  padding-top: 0.5vh;
+  padding-bottom: 1vh;
+}
+
+/*Add a breakpoint at 800px witdh*/
+@media screen and (min-width: 900px) {
+  h1 {
+    font-size: 60px;
+  }
+  h2 {
+    font-size: 40px;
+  }
+  h3 {
+    font-size: 30px;
+  }
+  p,
+  a {
+    font-size: 3rem;
+  }
+  nav li {
+    flex-basis: 100%;
+  }
+  td {
+    font-size: 2rem;
+  }
+  th {
+    font-size: 2rem;
+    font-weight: bold;
+  }
+}

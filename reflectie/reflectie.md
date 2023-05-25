@@ -44,3 +44,9 @@ begonnen aan het verplaatsen van de fietsen, moet nog kijken of er een goede man
 # dag 7: 24/5/2023
 
 TransporteurInterface klaar, ik ben veel te lang bezig geweest aan kleinde dingen fixen (-1 ipv '-1') :(
+
+# dag 8: 25/5/2023
+
+html stuff, momenteel werk de index.html enkel voor mobile, (gemaakt voor 375x812) #TODO fix
+
+Mannier zoeken om de data van de database in de html te krijgen.
