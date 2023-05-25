@@ -41,5 +41,6 @@ Momenteel is het laden van de data in vars gelukt, nu moet ik ze er terug in kun
 
 begonnen aan het verplaatsen van de fietsen, moet nog kijken of er een goede mannier is om dingen aan elkaar te koppelen. (moet eens kijken naar **fetchall()**)
 
-# dag 7: 15/05/2023
+# dag 7: 24/5/2023
 
+TransporteurInterface klaar, ik ben veel te lang bezig geweest aan kleinde dingen fixen (-1 ipv '-1') :(
