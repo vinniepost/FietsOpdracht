@@ -232,7 +232,7 @@ def ZetFietsTerug(Gebruiker:object, Station:object, Fiets:object):
 
 def MenuInterface():
 
-    print("welk soort gebruiker bent u?\n1. Gebruiker\n2. Transporteur\nq. Exit")
+    print("welk soort gebruiker bent u?\n1. Gebruiker\n2. Transporteur\n3. Simulatie q. Exit")
     keuze = input("\n")
 
     match keuze:
@@ -242,12 +242,42 @@ def MenuInterface():
         case "2":
             print("Welkom transporteur")
             TransporteurInterface()
+        case "3":
+            print("Welkom bij simulatie modus")
+            SimulatieInterface()
+
         case "q":
             print("Tot ziens")
             exit()
         case _:
             print("Geen geldige keuze")
             MenuInterface()
+
+def SimulatieInterface():
+#     Je zorgt ook voor een simulatiemodus waarbij je de tijd kan versnellen en het registreren van verplaatsingen
+# doorheen de stad kan automatiseren. De simulatiemodus kan worden gestart vanuit de terminal-interface,
+# maar ook door de applicatie te starten met “-s” argument
+
+    print("Welkom bij de simulatie modus")
+    print("1. Start simulatie\n2. Terug")
+    keuze = input("\n")
+    match keuze:
+        case "1":
+            print("Simulatie gestart")
+            Simulatie()
+        case "2":
+            print("Terug")
+            MenuInterface()
+        case _:
+            print("Geen geldige keuze")
+            SimulatieInterface()
+
+def Simulatie():
+    pass
+    
+
+
+
 
 def FietsIdFromUser(UserId):
     conn = ConnectToBD()
