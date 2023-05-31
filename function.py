@@ -1,5 +1,6 @@
 import os
 import sys
+import datetime
 import module
 import json
 import random
@@ -178,13 +179,20 @@ def UsersToDB(maxUsers):
     Add_DB_Entree("Gebruikers", str(data))
     return users
 
-def NeemFietss(Gebruiker:object, Fiets:object, Station:object):
+def NeemFietss(Gebruiker:object, Fiets:object, Station:object, time:str = datetime.datetime.now()):
     conn = ConnectToBD()
     bikeAvelible = False
     
     # TODO: zet hier een try rond
     with conn:
         cur = conn.cursor()
+
+        cur.execute("SELECT COUNT(*) FROM Logs")
+        result = cur.fetchone()
+        current_count = result[0]
+        new_id = current_count + 1 if current_count > 0 else 1
+
+
         for slot in cur.execute("SELECT current FROM Sloten WHERE StationID = ?", (Station.id,)):
             if slot[0] == "Bezet":
                 bikeAvelible = True
@@ -200,8 +208,8 @@ def NeemFietss(Gebruiker:object, Fiets:object, Station:object):
         with conn:
             cur = conn.cursor()
             cur.execute("UPDATE Fietsen SET status = 'Bezet', Lokatie = ?, SlotID = 'n.v.t.', StationID = 'n.v.t.' WHERE id = ?", (Fiets.getHuidigeLokatie(), Fiets.getId()))
-            conn.commit()
             cur.execute("UPDATE Gebruikers SET gehuurdeFiets = ? WHERE id = ?", (str(Gebruiker.getGehuurdeFiets()), Gebruiker.getId()))
+            cur.execute("INSERT INTO Logs (id, Actie, Tijd, FietsID, GebruikerID, StationID, SlotID) VALUES (?, ?, time, ?, ?, ?, ?)", (new_id, 'Fiets gehuurd', Fiets.getId(), Gebruiker.getId(), Station.getId(), Fiets.getSlotID()))
             conn.commit()
         conn.close()
     elif (bikeAvelible == False):
@@ -209,14 +217,21 @@ def NeemFietss(Gebruiker:object, Fiets:object, Station:object):
     else:
         print("Gebruiker heeft al een fiets")
 
-def ZetFietsTerug(Gebruiker:object, Station:object, Fiets:object):
+def ZetFietsTerug(Gebruiker:object, Station:object, Fiets:object, time:str = datetime.datetime.now()):
     if ((Gebruiker.getGehuurdeFiets() != "None") and (len(Station.availableSlots) > 0)):
+    
         Gebruiker.ZetFietsTerug(Fiets, Station)
         Fiets.huidigeLokatie = f"Station"
         Fiets.status = "Vrij"
         conn = ConnectToBD()
         with conn:
             cur = conn.cursor()
+
+            cur.execute("SELECT COUNT(*) FROM Logs")
+            result = cur.fetchone()
+            current_count = result[0]
+            new_id = current_count + 1 if current_count > 0 else 1
+
             for i in cur.execute("SELECT id FROM Sloten WHERE current = 'Vrij' AND StationID = ?", (Station.getId(),)):               
                 Fiets.slotID = i[0]
                 break
@@ -225,6 +240,7 @@ def ZetFietsTerug(Gebruiker:object, Station:object, Fiets:object):
             cur.execute("UPDATE Fietsen SET status = 'Vrij', Lokatie = ?, SlotID = ?, StationID = ? WHERE id = ?", (Fiets.huidigeLokatie, Fiets.slotID, Station.getId() , Fiets.getId()))
             cur.execute("UPDATE Gebruikers SET gehuurdeFiets = ? WHERE id = ?", (str(Gebruiker.getGehuurdeFiets()), Gebruiker.getId()))
             cur.execute("UPDATE Sloten SET current = 'Bezet', FietsID = ? WHERE id = ?", (Fiets.getId(), Fiets.slotID))
+            cur.execute("INSERT INTO Logs (id, Actie, Tijd, FietsID, GebruikerID, StationID, SlotID) VALUES (?, ?, time, ?, ?, ?, ?)", (new_id, 'Fiets teruggezet', Fiets.getId(), Gebruiker.getId(), Station.getId(), Fiets.getSlotID()))
             conn.commit()
         conn.close()
     else:
@@ -232,7 +248,7 @@ def ZetFietsTerug(Gebruiker:object, Station:object, Fiets:object):
 
 def MenuInterface():
 
-    print("welk soort gebruiker bent u?\n1. Gebruiker\n2. Transporteur\n3. Simulatie q. Exit")
+    print("welk soort gebruiker bent u?\n1. Gebruiker\n2. Transporteur\n3. Simulatie \nq. Exit")
     keuze = input("\n")
 
     match keuze:
@@ -254,30 +270,76 @@ def MenuInterface():
             MenuInterface()
 
 def SimulatieInterface():
-#     Je zorgt ook voor een simulatiemodus waarbij je de tijd kan versnellen en het registreren van verplaatsingen
-# doorheen de stad kan automatiseren. De simulatiemodus kan worden gestart vanuit de terminal-interface,
-# maar ook door de applicatie te starten met “-s” argument
-
     print("Welkom bij de simulatie modus")
-    print("1. Start simulatie\n2. Terug")
+    print("1. Start simulatie\n2. Versnel tijd\nb. Terug")
     keuze = input("\n")
+
+    tijd = datetime.datetime.now()
+
     match keuze:
         case "1":
+            print("Hoeveel cycli wilt u uitvoeren?")
+            inputCycli = input("# Cycli: ")
             print("Simulatie gestart")
-            Simulatie()
+
+            Simulatie(inputCycli,tijd)
         case "2":
+            print("Tijd versnellen")
+            inputTijd = input("Met welke factor wil je de tijd versnellen? ")
+            print(f"De tijd is nu met factor {inputTijd} versneld")
+            tijd = tijd + datetime.datetime.now() * int(inputTijd)
+            SimulatieInterface()
+        case "b":
             print("Terug")
             MenuInterface()
         case _:
             print("Geen geldige keuze")
             SimulatieInterface()
 
-def Simulatie():
-    pass
-    
-
-
-
+def Simulatie(aantalCyclus, tijd):
+    for i in range(int(aantalCyclus)):
+        rng = random.randint(1, 100)
+        if rng <= 75 or i == 0:
+            rng = 1
+        else:
+            rng = 2
+        match rng:
+            case 1:
+                print("Gebruiker neemt fiets")
+                GebruikerID = random.randint(1000, 1100)
+                StationID = random.randint(1, 100)
+                FietsID = FietsIDGetter((StationID))
+                userdata = GetDataFromDB("Gebruikers")
+                fietsdata = GetDataFromDB("Fietsen")
+                stationdata = GetDataFromDB("Stations")
+                Gebruiker = IDToObject(userdata, GebruikerID, module.Gebruiker)
+                Fiets = IDToObject(fietsdata, FietsID, module.Fiets)
+                Station = IDToObject(stationdata, StationID, module.Station)
+                NeemFietss(Gebruiker, Fiets, Station,tijd)
+            case 2:
+                con = ConnectToBD()
+                cur = con.cursor()
+                cur.execute("SELECT id FROM Gebruikers WHERE gehuurdeFiets != 'None'")
+                gebruiker = cur.fetchone()
+                if gebruiker != None:
+                    gebruikerId = gebruiker[0]
+                    cur.execute("SELECT StationID FROM Fietsen WHERE id = (SELECT gehuurdeFiets FROM Gebruikers WHERE id = ?)", (gebruikerId,))
+                    station = cur.fetchone()
+                    if station != None:
+                        stationId = station[0]
+                        cur.execute("SELECT id FROM Sloten WHERE StationID = ? AND current = 'Bezet'", (stationId,))
+                        slot = cur.fetchone()
+                        if slot != None:
+                            slotId = slot[0]
+                            FietsID = FietsIDGetter((stationId))
+                            userdata = GetDataFromDB("Gebruikers")
+                            fietsdata = GetDataFromDB("Fietsen")
+                            stationdata = GetDataFromDB("Stations")
+                            Gebruiker = IDToObject(userdata, gebruikerId, module.Gebruiker)
+                            Fiets = IDToObject(fietsdata, FietsID, module.Fiets)
+                            Station = IDToObject(stationdata, stationId, module.Station)
+                            ZetFietsTerug(Gebruiker, Station, Fiets,tijd)
+                print("Gebruiker zet fiets terug")
 
 def FietsIdFromUser(UserId):
     conn = ConnectToBD()
@@ -385,16 +447,17 @@ def DBInitialisation():
         cur.execute("DROP TABLE IF EXISTS Fietsen")
         cur.execute("DROP TABLE IF EXISTS Sloten")
         cur.execute("DROP TABLE IF EXISTS Stations")
+        cur.execute("DROP TABLE IF EXISTS Logs")
         cur.execute("CREATE TABLE Fietsen (id INTEGER PRIMARY KEY, status TEXT, Lokatie TEXT, SlotID INTEGER, StationID INTEGER, FOREIGN KEY(SlotID) REFERENCES Sloten(id), FOREIGN KEY(StationID) REFERENCES Stations(id))")
         cur.execute("CREATE TABLE Gebruikers (id INTEGER PRIMARY KEY, naam TEXT, geboorteDatum TEXT, woonplaats TEXT, gehuurdeFiets TEXT)")
         cur.execute("CREATE TABLE Sloten (id INTEGER PRIMARY KEY, current TEXT, FietsID TEXT,StationID INTEGER,FOREIGN KEY(StationID) REFERENCES Stations(id))")
         cur.execute("CREATE TABLE Stations (id INTEGER PRIMARY KEY, Lokatie TEXT, Capasiteit INTEGER)")
+        cur.execute("CREATE TABLE Logs (id INTEGER PRIMARY KEY, Actie TEXT,Tijd TEXT, FietsID TEXT, GebruikerID INTEGER, StationID INTEGER, SlotID INTEGER, FOREIGN KEY(FietsID) REFERENCES Fietsen(id), FOREIGN KEY(GebruikerID) REFERENCES Gebruikers(id), FOREIGN KEY(StationID) REFERENCES Stations(id), FOREIGN KEY(SlotID) REFERENCES Sloten(id))")
         with open("data/stations.json") as f:
             data = json.load(f)
             stations = data["features"]
             SurfixId = 1 # niet zeker
             slotID = 1
-
             for station in stations:
                 print(f"Generating station {SurfixId}/{len(stations)}, may take a second", end='\r')
                 huidigAantalSlots = 0
@@ -517,4 +580,3 @@ def FetchFromDatabase(table:str = None):
     data = curr.fetchall()
     conn.close()
     return data
-

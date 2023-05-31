@@ -147,21 +147,6 @@ class Fietstransporteur(Gebruiker):
         else:
             print("Fiets niet in de transportauto")
 
-class Logboek:
-    def __init__(self) -> None:
-        try:
-            with open("/output/data.json", "r") as data:
-                self.data = json.load(data)
-        except FileNotFoundError:
-            with open("/output/data.json", "w") as data:
-                self.data = []
-                json.dump(self.data, data)
-        
-    def Log(self, data):
-        self.data.append(data)
-        with open(self.filepath, "w") as f:
-            json.dump(self.data, f)
-
 class StationEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Station):

@@ -1,7 +1,6 @@
 import os
 import sys
 import function as func
-import module
 
 
 def Init():

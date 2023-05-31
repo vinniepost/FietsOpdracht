@@ -50,3 +50,11 @@ TransporteurInterface klaar, ik ben veel te lang bezig geweest aan kleinde dinge
 html stuff, momenteel werk de index.html enkel voor mobile, (gemaakt voor 375x812) #TODO fix
 
 Mannier zoeken om de data van de database in de html te krijgen.
+
+is nog gelukt dezelfde dag
+
+-------------------------------------------------------------------------------------
+Tussentijdse TODO:
+-simulatie modus
+-logging
+-------------------------------------------------------------------------------------
