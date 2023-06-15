@@ -17,11 +17,11 @@ def Init():
     
 def Main(argc:int, argv:list):
 
-    ListOfData = Init()
+    Init()
     with open(".temp", "w") as f:
         f.write("Momenteel nog een lege file om te kijken of de runtime check werkt")
     print('\n')
-    wait = input("Press enter to continue...")
+    input("Press enter to continue...")
 
     func.MenuInterface()
 

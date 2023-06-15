@@ -58,3 +58,42 @@ Tussentijdse TODO:
 -simulatie modus
 -logging
 -------------------------------------------------------------------------------------
+dag 9: 5-6-2023
+forgot to log the creation and finalasation of the logging. Looking into the simulation, though it might be a feature to leave out. since there are a lot of edge cases I cant solve unless I hardcode them, and I am not a fan of that!.
+
+
+# Eindrapport
+
+Na een tijdje proberen ondervind ik dat het simulatie gedeelde niet binnen de gevraagde tijd mogenlijk is. deze functie zal dus ook ontbreken bij het ingeleverde project.
+
+## De werking
+
+### algemeen
+Het programma is te runnen met het main.py script. Hieruit zijn er enkele opties te kiezen via de terminal.
+
+### _Site
+In de _site map vindt je de index.html die je kan opstarten als webserver, hier zitten ook links in naar de andere html pagina's (let op, bij veel gebruikers gaat het laden van een aantal paginas redelijk lang duren).
+
+### Data
+Deze map bevat enkele template json files die gebruikt worden tijdens het generenen van de data, als een backup zip met data indien het generenen van data te lang duurt.
+
+### Reflectie
+Bevat een markdown met een reflectie over de taak
+
+### templates
+Bevat de html templates voor de SSG
+
+### Function.py 
+Script waarin alle python functies die ik gemaakt hebt zitten
+
+### Main.py
+Het main py script dat dient gerunt te worden
+
+### module.py
+Bevat de objecten gebruikt voor dit project
+
+## Keuzen die ik zelf gemaakt heb
+De meest significante keuzen die ik gemaakt heb is het gebruik van sqlite3, aangezien dit een database is die als file werkt zonder extra dingen te moeten instaleren, wat ik perfect vond voor dit project.
+
+## In de toekomst
+Dit project heeft me net iets te duidelijk gemaakt hoe (zeker in OOP projecten) het vooruit plannen meer belangrijk is dan ik wil toegeven, dit had bepaalde problemen veel kleiner gemaakt. Moest ik meer tijd (en motivatie) gehad hebben had ik graag nog al de functies willen overschrijven naar een "mooiere" vorm. Helaas heb ik dit niet en zal het hierbij moeten blijven.

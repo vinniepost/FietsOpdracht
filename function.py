@@ -119,6 +119,7 @@ def GenerateBike(id, status, lokatie, slotID, stationID):
     Fiets = module.Fiets(id, status, lokatie, slotID, stationID)
     conn = ConnectToBD()
     cur = conn.cursor()
+    cur.row_factory = None
     cur.execute("INSERT INTO Fietsen VALUES (?, ?, ?, ?, ?)", (Fiets.id, Fiets.status, Fiets.huidigeLokatie, Fiets.slotID, Fiets.stationID))
     conn.commit()
     conn.close()
@@ -127,6 +128,7 @@ def GenerateBike(id, status, lokatie, slotID, stationID):
 def Add_DB_Entree(table, values):
     conn = ConnectToBD()
     cur = conn.cursor()
+    cur.row_factory = None
     cur.execute("INSERT INTO " + table + " VALUES " + values)
 
     conn.commit()
@@ -138,6 +140,7 @@ def Add_DB_Bulk(conn, table, values):
 def GetDataFromDB(table) -> list:
     conn = ConnectToBD()
     cur = conn.cursor()
+    cur.row_factory = None
     cur.execute("SELECT * FROM " + table)
     data = cur.fetchall()
     return data
@@ -157,6 +160,8 @@ def Add_DB_User(conn, users):
     conn = ConnectToBD()
     with conn:
         cur = conn.cursor()
+        cur.row_factory = None
+        cur.row_factory = None
         cur.execute("insert into Gebruikers values (?,?,?,?)", users)
         conn.commit()
     conn.close()
@@ -164,6 +169,7 @@ def Add_DB_User(conn, users):
 def ConnectToBD():
     try:
         conn = sqlite3.connect(r"data/AplicatieDB.sqlite")
+        conn.text_factory = str
         return conn
     except Error:
         print("Error connecting to DB")
@@ -181,11 +187,14 @@ def UsersToDB(maxUsers):
 
 def NeemFietss(Gebruiker:object, Fiets:object, Station:object, time:str = datetime.datetime.now()):
     conn = ConnectToBD()
+    conn.text_factory = str
+    conn.execute("PRAGMA query_only = 1")
     bikeAvelible = False
     
     # TODO: zet hier een try rond
     with conn:
         cur = conn.cursor()
+        cur.row_factory = None
 
         cur.execute("SELECT COUNT(*) FROM Logs")
         result = cur.fetchone()
@@ -207,6 +216,7 @@ def NeemFietss(Gebruiker:object, Fiets:object, Station:object, time:str = dateti
             Fiets.SlotID = "n.v.t."
         with conn:
             cur = conn.cursor()
+            cur.row_factory = None
             cur.execute("UPDATE Fietsen SET status = 'Bezet', Lokatie = ?, SlotID = 'n.v.t.', StationID = 'n.v.t.' WHERE id = ?", (Fiets.getHuidigeLokatie(), Fiets.getId()))
             cur.execute("UPDATE Gebruikers SET gehuurdeFiets = ? WHERE id = ?", (str(Gebruiker.getGehuurdeFiets()), Gebruiker.getId()))
             cur.execute("INSERT INTO Logs (id, Actie, Tijd, FietsID, GebruikerID, StationID, SlotID) VALUES (?, ?, time, ?, ?, ?, ?)", (new_id, 'Fiets gehuurd', Fiets.getId(), Gebruiker.getId(), Station.getId(), Fiets.getSlotID()))
@@ -226,6 +236,7 @@ def ZetFietsTerug(Gebruiker:object, Station:object, Fiets:object, time:str = dat
         conn = ConnectToBD()
         with conn:
             cur = conn.cursor()
+            cur.row_factory = None
 
             cur.execute("SELECT COUNT(*) FROM Logs")
             result = cur.fetchone()
@@ -299,7 +310,7 @@ def SimulatieInterface():
 def Simulatie(aantalCyclus, tijd):
     for i in range(int(aantalCyclus)):
         rng = random.randint(1, 100)
-        if rng <= 75 or i == 0:
+        if rng <= 75 or (i < 20):
             rng = 1
         else:
             rng = 2
@@ -347,6 +358,7 @@ def FietsIdFromUser(UserId):
     test = cur.execute("SELECT naam FROM Gebruikers WHERE id = ?", (UserId,))
     with conn:
         cur = conn.cursor()
+        cur.row_factory = None
         gehuurdeFiets =  cur.execute("SELECT gehuurdeFiets FROM Gebruikers WHERE id = ?", (UserId,))
         if (gehuurdeFiets[0] == "None"):
             print("Gebruiker heeft geen fiets")
@@ -356,9 +368,11 @@ def FietsIdFromUser(UserId):
 def FietsIDGetter(StationId):
     conn = ConnectToBD()
     cur = conn.cursor()
+    cur.row_factory = None
     cur.execute("SELECT current FROM Sloten WHERE StationID = ?", (StationId,))
     with conn:
         cur = conn.cursor()
+        cur.row_factory = None
         for i in cur.execute("SELECT current, id FROM Sloten WHERE StationID = ?", (StationId,)):
             if i[0] == "Bezet":
                 cur.execute("SELECT FietsID FROM Sloten WHERE StationID = ? AND id = ?", (StationId,i[1]))
@@ -376,50 +390,64 @@ def GebruikerInterface():
             print("Fiets ontlenen: Geef GebruikerID en FietsID")
             GebruikerID = input("GebruikerID: ")
             StationID = input("StationID: ")
-            FietsID = FietsIDGetter((StationID))
-            userdata = GetDataFromDB("Gebruikers")
-            fietsdata = GetDataFromDB("Fietsen")
-            stationdata = GetDataFromDB("Stations")
-            Gebruiker = IDToObject(userdata, GebruikerID, module.Gebruiker)
-            Fiets = IDToObject(fietsdata, FietsID, module.Fiets)
-            Station = IDToObject(stationdata, StationID, module.Station)
-            NeemFietss(Gebruiker, Fiets, Station)
+            try:
+                FietsID = FietsIDGetter((StationID))
+                userdata = GetDataFromDB("Gebruikers")
+                fietsdata = GetDataFromDB("Fietsen")
+                stationdata = GetDataFromDB("Stations")
+                Gebruiker = IDToObject(userdata, GebruikerID, module.Gebruiker)
+                Fiets = IDToObject(fietsdata, FietsID, module.Fiets)
+                Station = IDToObject(stationdata, StationID, module.Station)
+                NeemFietss(Gebruiker, Fiets, Station)
+            except:
+                print("Input Onjuist, probeer opnieuw")
             GebruikerInterface()
         case "2":
             print("Fiets terug Zetten")
             GebruikerID = input("GebruikerID: ")
             StationID = input("StationID: ")
             BikeID = input("FietsID: ")
-            userdata = GetDataFromDB("Gebruikers")
-            stationdata = GetDataFromDB("Stations")
-            bikeData = GetDataFromDB("Fietsen")
-            Gebruiker = IDToObject(userdata, GebruikerID, module.Gebruiker)
-            Station = IDToObject(stationdata, StationID, module.Station)
-            Fiets = IDToObject(bikeData, BikeID, module.Fiets)
-            ZetFietsTerug(Gebruiker, Station, Fiets)
+            try:
+                userdata = GetDataFromDB("Gebruikers")
+                stationdata = GetDataFromDB("Stations")
+                bikeData = GetDataFromDB("Fietsen")
+                Gebruiker = IDToObject(userdata, GebruikerID, module.Gebruiker)
+                Station = IDToObject(stationdata, StationID, module.Station)
+                Fiets = IDToObject(bikeData, BikeID, module.Fiets)
+                ZetFietsTerug(Gebruiker, Station, Fiets)
+            except:
+                print("Input Onjuist, probeer opnieuw")
             GebruikerInterface()
         case "3":
             print("Status fiets met id")
             FietsStatusViaID()
             GebruikerInterface()
-        case "4": # TODO: fix
+        case "4":
             print("\nStatus slots in station\n")
             StationID = input("StationID: ")
-            conn = ConnectToBD()
-            cur = conn.cursor()
-            with conn:
+            try:
+                conn = ConnectToBD()
                 cur = conn.cursor()
-                for i in cur.execute("SELECT id, current FROM Sloten WHERE StationID = ?", (StationID,)):
-                    print(i)
-            conn.commit()
-            conn.close()
+                cur.row_factory = None
+                with conn:
+                    cur = conn.cursor()
+                    cur.row_factory = None
+                    for i in cur.execute("SELECT id, current FROM Sloten WHERE StationID = ?", (StationID,)):
+                        print(i)
+                conn.commit()
+                conn.close()
+            except:
+                print("Input Onjuist, probeer opnieuw")
             GebruikerInterface()
         case "5":
             print("Status Gebruiker met id")
-            GebruikerID = input("GebruikerID: ")
-            userdata = GetDataFromDB("Gebruikers")
-            Gebruiker = IDToObject(userdata, GebruikerID, module.Gebruiker)
-            print(Gebruiker.getGehuurdeFiets())
+            try:
+                GebruikerID = input("GebruikerID: ")
+                userdata = GetDataFromDB("Gebruikers")
+                Gebruiker = IDToObject(userdata, GebruikerID, module.Gebruiker)
+                print(Gebruiker.getGehuurdeFiets())
+            except: 
+                print("Input Onjuist, probeer opnieuw")
             GebruikerInterface()
         case "6":
             print("Genereer webpagina voor huidige situatie")
@@ -443,6 +471,7 @@ def DBInitialisation():
         totaalAantalSloten = 0
         conn = ConnectToBD()
         cur = conn.cursor()
+        cur.row_factory = None
         cur.execute("DROP TABLE IF EXISTS Gebruikers")
         cur.execute("DROP TABLE IF EXISTS Fietsen")
         cur.execute("DROP TABLE IF EXISTS Sloten")
@@ -481,6 +510,7 @@ def DBInitialisation():
                         slotBezet = "Bezet"
                     slotID += 1
                     cur = conn.cursor()
+                    cur.row_factory = None
                     cur.execute("INSERT INTO Sloten (id, current, FietsID ,StationID) VALUES (?,?,?,?)",(totaalAantalSloten,slotBezet,Slot.FietsId,stationId))
                     conn.commit()
         conn.close()
@@ -507,27 +537,33 @@ def TransporteurInterface():
             print("Fiets ontlenen: Geef GebruikerID en FietsID")
             GebruikerID = '-1'
             StationID = input("StationID: ")
-            FietsID = FietsIDGetter((StationID))
-            userdata = GetDataFromDB("Gebruikers")
-            fietsdata = GetDataFromDB("Fietsen")
-            stationdata = GetDataFromDB("Stations")
-            Gebruiker = IDToObject(userdata, GebruikerID, module.Gebruiker)
-            Fiets = IDToObject(fietsdata, FietsID, module.Fiets)
-            Station = IDToObject(stationdata, StationID, module.Station)
-            NeemFietss(Gebruiker, Fiets, Station)
+            try:
+                FietsID = FietsIDGetter((StationID))
+                userdata = GetDataFromDB("Gebruikers")
+                fietsdata = GetDataFromDB("Fietsen")
+                stationdata = GetDataFromDB("Stations")
+                Gebruiker = IDToObject(userdata, GebruikerID, module.Gebruiker)
+                Fiets = IDToObject(fietsdata, FietsID, module.Fiets)
+                Station = IDToObject(stationdata, StationID, module.Station)
+                NeemFietss(Gebruiker, Fiets, Station)
+            except:
+                print("Input Onjuist, probeer opnieuw")
             TransporteurInterface()
         case "2":
             print("Fiets terug Zetten")
             GebruikerID = '-1'
             StationID = input("StationID: ")
             BikeID = input("FietsID: ")
-            userdata = GetDataFromDB("Gebruikers")
-            stationdata = GetDataFromDB("Stations")
-            bikeData = GetDataFromDB("Fietsen")
-            Gebruiker = IDToObject(userdata, GebruikerID, module.Gebruiker)
-            Station = IDToObject(stationdata, StationID, module.Station)
-            Fiets = IDToObject(bikeData, BikeID, module.Fiets)
-            ZetFietsTerug(Gebruiker, Station, Fiets)
+            try:
+                userdata = GetDataFromDB("Gebruikers")
+                stationdata = GetDataFromDB("Stations")
+                bikeData = GetDataFromDB("Fietsen")
+                Gebruiker = IDToObject(userdata, GebruikerID, module.Gebruiker)
+                Station = IDToObject(stationdata, StationID, module.Station)
+                Fiets = IDToObject(bikeData, BikeID, module.Fiets)
+                ZetFietsTerug(Gebruiker, Station, Fiets)
+            except:
+                print("Input Onjuist, probeer opnieuw")
             TransporteurInterface()
         case "3":
             print("Genereer webpagina voor huidige situatie")
@@ -575,6 +611,7 @@ def generateStaticSite():
 
 def FetchFromDatabase(table:str = None):
     conn = sqlite3.connect('data/AplicatieDB.sqlite')
+    conn.text_factory = str
     curr = conn.cursor()
     curr.execute(f"SELECT * FROM {table}")
     data = curr.fetchall()
